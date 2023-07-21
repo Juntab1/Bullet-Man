@@ -2,24 +2,25 @@ import curses
 import random
 import time
 
-
-class ScoreCount:
+# keeps track of universal score and health
+class Statistics:
     score = 0
-    def incr():
-        ScoreCount.score += 1
-
-class Lives:
     health = 3
+    def incr():
+        Statistics.score += 1
     def decr():
-        Lives.health -= 1
+        Statistics.health -= 1
 
+# keeps track of any variable relating to the window of 
+# the game
 class GameWindow:
     window = None
 
+# keeps track of variables that change frequently due to user choice, like user coordinate and etc.
 class GameState:
     pass
 
-# when using this  don't forget for the char_x to be +1 so it shoots from next to the char
+# function that decides if the user's gun reaches the enemy. If it does it updates the score variable
 def shoot():
     #score = 0
     temp_x = GameState.char_x+1
@@ -28,12 +29,13 @@ def shoot():
             GameWindow.window.addch(GameState.char_y,temp_x+i,'a')
             if (GameState.monster_y == GameState.char_y and GameState.monster_x == temp_x+i):
                 curses.flash()
-                ScoreCount.incr()
-                GameWindow.window.addstr(0,1,f"Score:{ScoreCount.score}")
+                Statistics.incr()
+                GameWindow.window.addstr(0,9,f"Score:{Statistics.score}")
             GameWindow.window.refresh()
             time.sleep(0.5)
             GameWindow.window.addch(GameState.char_y,temp_x+i,' ')
 
+# creates a monster at a random location on the map
 def monster():
     GameState.monster_y = random.randint(2,GameWindow.height_window-2)
     GameState.monster_x = random.randint(2,GameWindow.width_window-2)
@@ -62,8 +64,15 @@ def main():
     monster()
     while True:
         GameWindow.window.addch(GameState.char_y,GameState.char_x,'A')
-        # this is where the life if statement is going to be to decrement the life counter
-        # this already refreshes for us
+        if (GameState.monster_x == GameState.char_x and GameState.monster_y == GameState.char_y):
+            Statistics.decr()
+            GameWindow.window.addstr(0,1,f"Lives:{Statistics.health}")
+            GameWindow.window.refresh()
+            if (Statistics.health == 0):
+                GameWindow.window.addstr(2,10,f"YOU LOSE!")
+                GameWindow.window.refresh()
+                time.sleep(1.5)
+                exit()
         c = GameWindow.window.getch()
         GameWindow.window.addch(GameState.char_y,GameState.char_x,' ')
         GameWindow.window.refresh()
@@ -92,7 +101,7 @@ def main():
 
         elif (c == ord('q')):
             break
-    # end operation to finish a program
+    # lines that end operation to finish a program
     curses.nocbreak()
     curses.echo()
     curses.endwin()
