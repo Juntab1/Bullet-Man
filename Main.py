@@ -10,6 +10,7 @@ class Statistics:
         Statistics.score += 1
     def decr():
         Statistics.health -= 1
+    
 
 # keeps track of any variable relating to the window of 
 # the game
@@ -22,7 +23,6 @@ class GameState:
 
 # function that decides if the user's gun reaches the enemy. If it does it updates the score variable
 def shoot():
-    #score = 0
     temp_x = GameState.char_x+1
     for i in range(3):
         if (temp_x+i < GameWindow.width_window-1):
@@ -98,6 +98,9 @@ def main():
                 curses.beep()
         elif (c == ord(' ')):
             shoot()
+            # if (GameState.hit == True):
+            #     monster()
+            # GameState.hit = False
 
         elif (c == ord('q')):
             break
