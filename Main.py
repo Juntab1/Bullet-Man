@@ -1,5 +1,3 @@
-import sys
-print(sys.executable)
 import curses
 import random
 import time
@@ -15,37 +13,35 @@ class Lives:
     def decr():
         Lives.health -= 1
 
-
 class GameWindow:
     window = None
 
-# when using this  don't forget for the char_x to be +1 so it shoots from next to the char
-def shoot(char_y,char_x):
-    #score = 0
-    for i in range(3):
-        if (char_x+i < GameState.width_window-1):
-            window.addch(char_y,char_x+i,'a')
-            if (monster_y == char_y and monster_x == char_x+i):
-                curses.flash()
-                ScoreCount.incr()
-                window.addstr(0,1,f"Score:{ScoreCount.score}")
-            window.refresh()
-            time.sleep(0.5)
-            window.addch(char_y,char_x+i,' ')
-
-def monster(char_y, char_x):
-    global monster_y
-    global monster_x
-    monster_y = random.randint(2,GameState.height_window-2)
-    monster_x = random.randint(2,GameState.width_window-2)
-    if (monster_y == char_y):
-        monster_y = random.randint(monster_y+1, GameState.height_window-2)
-    elif (monster_x == char_x):
-        monster_x = random.randint(monster_x+1, GameState.width_window-2)
-    window.addch(monster_y,monster_x,'T')
-
 class GameState:
     pass
+
+# when using this  don't forget for the char_x to be +1 so it shoots from next to the char
+def shoot():
+    #score = 0
+    temp_x = GameState.char_x+1
+    for i in range(3):
+        if (temp_x+i < GameWindow.width_window-1):
+            GameWindow.window.addch(GameState.char_y,temp_x+i,'a')
+            if (GameState.monster_y == GameState.char_y and GameState.monster_x == temp_x+i):
+                curses.flash()
+                ScoreCount.incr()
+                GameWindow.window.addstr(0,1,f"Score:{ScoreCount.score}")
+            GameWindow.window.refresh()
+            time.sleep(0.5)
+            GameWindow.window.addch(GameState.char_y,temp_x+i,' ')
+
+def monster():
+    GameState.monster_y = random.randint(2,GameWindow.height_window-2)
+    GameState.monster_x = random.randint(2,GameWindow.width_window-2)
+    if (GameState.monster_y == GameState.char_y):
+        GameState.monster_y = random.randint(GameState.monster_y+1, GameWindow.height_window-2)
+    elif (GameState.monster_x == GameState.char_x):
+        GameState.monster_x = random.randint(GameState.monster_x+1, GameWindow.width_window-2)
+    GameWindow.window.addch(GameState.monster_y,GameState.monster_x,'T')
 
 
 def main():
@@ -54,45 +50,45 @@ def main():
     curses.noecho()
     # respond without entering enter key
     curses.cbreak()
-    GameState.height_window = 6
-    GameState.width_window = 30
-    char_x = 15
-    char_y = 3
-    global window 
-    window = curses.newwin(GameState.height_window,GameState.width_window)
-    window.box()
-    window.addstr(0,9,"Score:0")
-    window.addstr(0,1,"Lives:3")
+    GameWindow.height_window = 6
+    GameWindow.width_window = 30
+    GameState.char_x = 15
+    GameState.char_y = 3
+    GameWindow.window = curses.newwin(GameWindow.height_window,GameWindow.width_window)
+    GameWindow.window.box()
+    GameWindow.window.addstr(0,9,"Score:0")
+    GameWindow.window.addstr(0,1,"Lives:3")
     curses.curs_set(0)
-    monster(char_y,char_x)
+    monster()
     while True:
-        window.addch(char_y,char_x,'A')
+        GameWindow.window.addch(GameState.char_y,GameState.char_x,'A')
+        # this is where the life if statement is going to be to decrement the life counter
         # this already refreshes for us
-        c = window.getch()
-        window.addch(char_y,char_x,' ')
-        window.refresh()
+        c = GameWindow.window.getch()
+        GameWindow.window.addch(GameState.char_y,GameState.char_x,' ')
+        GameWindow.window.refresh()
         if (c == ord('d')):
-            if (char_x < GameState.width_window-2):
-                char_x += 1
+            if (GameState.char_x < GameWindow.width_window-2):
+                GameState.char_x += 1
             else:
                 curses.beep()
         elif (c == ord('a')):
-            if (char_x > 1):
-                char_x -= 1
+            if (GameState.char_x > 1):
+                GameState.char_x -= 1
             else:
                 curses.beep()
         elif (c == ord('w')):
-            if (char_y > 1):
-                char_y -= 1
+            if (GameState.char_y > 1):
+                GameState.char_y -= 1
             else:
                 curses.beep()
         elif (c == ord('s')):
-            if (char_y < GameState.height_window-2):
-                char_y += 1
+            if (GameState.char_y < GameWindow.height_window-2):
+                GameState.char_y += 1
             else:
                 curses.beep()
         elif (c == ord(' ')):
-            shoot(char_y,char_x+1)
+            shoot()
 
         elif (c == ord('q')):
             break
@@ -112,3 +108,8 @@ if __name__ == "__main__":
     # can use curs_set(False) to suppress the blinking cursor
     # getch() refreshes the screen and waits for the user to hit a key
     # c = stdscr.getch() and c == ord(letter press)
+    
+    # import sys
+    # print(sys.executable)   
+    # the two lines above help you see the path of your system so if your debugger is on the wrong
+    # path it will not run
