@@ -23,30 +23,32 @@ class GameWindow:
 class GameState:
     char_x = 15
     char_y = 3
+    hit = False
 
 # function that decides if the user's gun reaches the enemy. If it does it updates the score variable
-def shoot(state, window, count):
+def shoot(state, window_info, count):
     temp_x = state.char_x+1
     for i in range(3):
-        if (temp_x+i < window.width_window-1):
-            window.window.addch(state.char_y,temp_x+i,'a')
+        if (temp_x+i < window_info.width_window-1):
+            window_info.window.addch(state.char_y,temp_x+i,'a')
             if (state.monster_y == state.char_y and state.monster_x == temp_x+i):
                 curses.flash()
                 count.incr()
-                window.window.addstr(0,9,f"Score:{count.score}")
-            window.window.refresh()
+                window_info.window.addstr(0,9,f"Score:{count.score}")
+                state.hit = True
+            window_info.window.refresh()
             time.sleep(0.5)
-            window.window.addch(state.char_y,temp_x+i,' ')
+            window_info.window.addch(state.char_y,temp_x+i,' ')
 
 # creates a monster at a random location on the map
-def monster(state, window):
-    state.monster_y = random.randint(2,window.height_window-2)
-    state.monster_x = random.randint(2,window.width_window-2)
+def monster(state, window_info):
+    state.monster_y = random.randint(2,window_info.height_window-2)
+    state.monster_x = random.randint(2,window_info.width_window-2)
     if (state.monster_y == state.char_y):
-        state.monster_y = random.randint(state.monster_y+1, window.height_window-2)
+        state.monster_y = random.randint(state.monster_y+1, window_info.height_window-2)
     elif (state.monster_x == state.char_x):
-        state.monster_x = random.randint(state.monster_x+1, window.width_window-2)
-    window.window.addch(state.monster_y,state.monster_x,'T')
+        state.monster_x = random.randint(state.monster_x+1, window_info.width_window-2)
+    window_info.window.addch(state.monster_y,state.monster_x,'T')
 
 
 def main(state, window_info, count):
@@ -65,6 +67,8 @@ def main(state, window_info, count):
         window_info.window.addch(state.char_y,state.char_x,'A')
         if (state.monster_x == state.char_x and state.monster_y == state.char_y):
             count.decr()
+            if (count.health != 0):
+                monster(GameState,GameWindow)
             window_info.window.addstr(0,1,f"Lives:{count.health}")
             window_info.window.refresh()
             if (count.health == 0):
@@ -97,9 +101,9 @@ def main(state, window_info, count):
                 curses.beep()
         elif (c == ord(' ')):
             shoot(GameState, GameWindow, Statistics)
-            # if (GameState.hit == True):
-            #     monster()
-            # GameState.hit = False
+            if (GameState.hit == True):
+                monster(GameState, GameWindow)
+            GameState.hit = False
         elif (c == ord('q')):
             break
     # lines that end operation to finish a program
