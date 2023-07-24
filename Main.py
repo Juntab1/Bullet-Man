@@ -20,59 +20,82 @@ class GameWindow:
         self.height_window = 6
         self.width_window = 30
 
+class Player:
+    def __init__(self, start_x, start_y):
+        self.start_x = start_x
+        self.start_y = start_y
+        self.x = start_x
+        self.y = start_y
+
+# keeps track of the game world in a 2d grid
+class World:
+    def __init__(self, player_start_x, player_start_y, max_x, max_y):
+        self.player = Player(player_start_x, player_start_y)
+        self.max_x = max_x
+        self.max_y = max_y
+    
 # keeps track of variables that change frequently due to user choice, like user coordinate and etc.
 class GameState:
-    def __init__(self):
-        self.char_x = 15
-        self.char_y = 3
+    def __init__(self, window_max_x, window_max_y):
+        # TODO: starting with a world whose size is the same as the window, but later it should
+        # be made bigger (so we can move around)
+        self.world = World(15, 3, window_max_x, window_max_y)
         self.hit = False
 
 # function that decides if the user's gun reaches the enemy. If it does it updates the score variable.
 def shoot_pistol(state, window_info, count):
-    temp_x = (state.char_x + 1)
+    player = state.world.player
+    temp_x = (state.world.player.x + 1)
     for i in range(3):
         if ((temp_x + i) < (window_info.width_window - 1)):
-            window_info.window.addch(state.char_y, temp_x + i, 'a')
-            if (state.monster_y == state.char_y and state.monster_x == (temp_x + i)):
+            window_info.window.addch(player.y, temp_x + i, 'a')
+            if (state.monster_y == player.y and state.monster_x == (temp_x + i)):
                 curses.flash()
                 count.incr()
                 window_info.window.addstr(0, 9, f"Score:{count.score}")
                 state.hit = True
             window_info.window.refresh()
             time.sleep(0.5)
-            window_info.window.addch(state.char_y, temp_x + i, ' ')
+            window_info.window.addch(player.y, temp_x + i, ' ')
 
 # creates a monster at a random location on the map
 def create_monster(state, window_info):
+    player = state.world.player
     state.monster_y = random.randint(2, window_info.height_window - 2)
     state.monster_x = random.randint(2, window_info.width_window - 2)
-    if (state.monster_y == state.char_y):
+    if (state.monster_y == player.y):
         state.monster_y = random.randint(1, window_info.height_window - 2)
-        while (state.monster_y == state.char_y):
+        while (state.monster_y == player.y):
             state.monster_y = random.randint(1, window_info.height_window - 2)
-    elif (state.monster_x == state.char_x):
+    elif (state.monster_x == player.x):
         state.monster_x = random.randint(1, window_info.width_window - 2)
-        while (state.monster_x == state.char_x):
+        while (state.monster_x == player.x):
             state.monster_x = random.randint(1, window_info.width_window - 2)
     window_info.window.addch(state.monster_y, state.monster_x, 'T')
 
 
 def main():
-    game_state = GameState()
     window_info = GameWindow()
+    game_state = GameState(window_info.height_window, window_info.width_window)
     stats_info = Statistics()
+
     curses.initscr()
     curses.noecho()
     curses.cbreak()
+
     window_info.window = curses.newwin(window_info.height_window, window_info.width_window)
     window_info.window.box()
     window_info.window.addstr(0,9,"Score:0")
     window_info.window.addstr(0,1,"Lives:3")
+    
     curses.curs_set(0)
     create_monster(game_state, window_info)
+
+    # main game loop
     while True:
-        window_info.window.addch(game_state.char_y, game_state.char_x, 'A')
-        if (game_state.monster_x == game_state.char_x and game_state.monster_y == game_state.char_y):
+        player = game_state.world.player
+        window_info.window.addch(player.y, player.x, 'A')
+        if (game_state.monster_x == player.x and game_state.monster_y == player.y):
             stats_info.decr()
             if (stats_info.health != 0):
                 create_monster(game_state, window_info)
@@ -84,26 +107,26 @@ def main():
                 time.sleep(1.5)
                 exit()
         c = window_info.window.getch()
-        window_info.window.addch(game_state.char_y, game_state.char_x, ' ')
+        window_info.window.addch(player.y, player.x, ' ')
         window_info.window.refresh()
         if (c == ord('d')):
-            if (game_state.char_x < window_info.width_window - 2):
-                game_state.char_x += 1
+            if (player.x < window_info.width_window - 2):
+                player.x += 1
             else:
                 curses.beep()
         elif (c == ord('a')):
-            if (game_state.char_x > 1):
-                game_state.char_x -= 1
+            if (player.x > 1):
+                player.x -= 1
             else:
                 curses.beep()
         elif (c == ord('w')):
-            if (game_state.char_y > 1):
-                game_state.char_y -= 1
+            if (player.y > 1):
+                player.y -= 1
             else:
                 curses.beep()
         elif (c == ord('s')):
-            if (game_state.char_y < window_info.height_window - 2):
-                game_state.char_y += 1
+            if (player.y < window_info.height_window - 2):
+                player.y += 1
             else:
                 curses.beep()
         elif (c == ord(' ')):
