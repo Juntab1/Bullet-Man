@@ -47,9 +47,13 @@ def create_monster(state, window_info):
     state.monster_y = random.randint(2, window_info.height_window - 2)
     state.monster_x = random.randint(2, window_info.width_window - 2)
     if (state.monster_y == state.char_y):
-        state.monster_y = random.randint(min(state.monster_y + 1, window_info.height_window - 4), window_info.height_window - 2)
+        state.monster_y = random.randint(1, window_info.height_window - 2)
+        while (state.monster_y == state.char_y):
+            state.monster_y = random.randint(1, window_info.height_window - 2)
     elif (state.monster_x == state.char_x):
-        state.monster_x = random.randint(min(state.monster_x + 1, window_info.width_window - 4), window_info.width_window - 2)
+        state.monster_x = random.randint(1, window_info.width_window - 2)
+        while (state.monster_x == state.char_x):
+            state.monster_x = random.randint(1, window_info.width_window - 2)
     window_info.window.addch(state.monster_y, state.monster_x, 'T')
 
 
@@ -98,7 +102,7 @@ def main():
             else:
                 curses.beep()
         elif (c == ord('s')):
-            if (game_state.char_y < window_info.height_window-2):
+            if (game_state.char_y < window_info.height_window - 2):
                 game_state.char_y += 1
             else:
                 curses.beep()
