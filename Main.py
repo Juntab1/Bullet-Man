@@ -27,6 +27,9 @@ class Player:
         self.x = start_x
         self.y = start_y
 
+    def render(self, window_info):
+        window_info.window.addch(self.y, self.x, 'A')
+
 # keeps track of the game world in a 2d grid
 class World:
     def __init__(self, player_start_x, player_start_y, max_x, max_y):
@@ -48,6 +51,11 @@ def shoot_pistol(state, window_info, count):
     temp_x = (state.world.player.x + 1)
     for i in range(3):
         if ((temp_x + i) < (window_info.width_window - 1)):
+
+            #TODO - would be great to replace the 'bullet' with a class
+            # that is unrelated to the player and maintain's it's own x, and y.
+            # then we can have a bullet.render() on that class and disconnect
+            # it from the position of the player in this function.
             window_info.window.addch(player.y, temp_x + i, 'a')
             if (state.monster_y == player.y and state.monster_x == (temp_x + i)):
                 curses.flash()
@@ -91,10 +99,12 @@ def main():
     curses.curs_set(0)
     create_monster(game_state, window_info)
 
+    game_state.world.player.render(window_info)
+    
     # main game loop
     while True:
         player = game_state.world.player
-        window_info.window.addch(player.y, player.x, 'A')
+
         if (game_state.monster_x == player.x and game_state.monster_y == player.y):
             stats_info.decr()
             if (stats_info.health != 0):
@@ -106,7 +116,13 @@ def main():
                 window_info.window.refresh()
                 time.sleep(1.5)
                 exit()
+        
+        # read input
         c = window_info.window.getch()
+
+        # TODO - can we clear the window and re-draw everything at current position
+        # instead of trying the complicated dance of setting their pos to " "
+
         window_info.window.addch(player.y, player.x, ' ')
         window_info.window.refresh()
         if (c == ord('d')):
@@ -136,6 +152,7 @@ def main():
             game_state.hit = False
         elif (c == ord('q')):
             break
+        player.render(window_info)
     curses.nocbreak()
     curses.echo()
     curses.endwin()
