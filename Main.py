@@ -2,6 +2,11 @@ import curses
 import random
 import time
 
+# TODO - stop using specific numbers like 6, 30 as much as possible
+# TODO - see if we can draw the box ourselves so we can have more control over the window
+#         ex. we want to write lines of text below the 'box', right now we can't because curses assumes a border on the edge
+# TODO - OR come up with a place to put text so we can expand debug info
+
 # renders the window we are currently are at
 class Renderer:
     def __init__(self):
