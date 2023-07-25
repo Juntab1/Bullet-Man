@@ -10,15 +10,19 @@ class Renderer:
     def render(self, state):
         window = state.window
         stats = state.stats
+        debug_info = state.debug_info
         player = state.world.player
         monster = state.world.monster
-
+        
         window.clear()
         window.box()
 
-        stats.render(state)
-        player.render(state)
-        monster.render(state)
+        stats._render(state)
+        player._render(state)
+        monster._render(state)
+        debug_info._render(state)
+
+        # TODO - Move bullet here
 
         window.refresh()
 
@@ -30,7 +34,7 @@ class Player:
         self.x = start_x
         self.y = start_y
 
-    def render(self, state):
+    def _render(self, state):
         state.window.addch(self.y, self.x, 'A')
 
 # keeps track of the game world in a 2d grid
@@ -40,58 +44,85 @@ class World:
         self.max_x = max_x
         self.max_y = max_y
         self.monster = Monster()
-        self.bullet = Bullet(player_start_y,player_start_x+1)
+        self.bullet = None
     
 # keeps track of variables that change frequently due to user choice, like user coordinate and etc.
 class GameState:
     # pass in 30 for x and 6 for y  
     def __init__(self, window_max_y, window_max_x):
+        self.quit = False
         # TODO: starting with a world whose size is the same as the window, but later it should
         # be made bigger (so we can move around)
         self.world = World(15, 3, window_max_x, window_max_y)
         self.window = None
         self.stats = Statistics()
         self.renderer = Renderer()
+        self.debug_info = DebugInfo()
 
     # can get rid of monster and renderer here
     def run(self):
         self.world.monster.create_monster(self)
-        while True:
+        while not self.quit:
             player = self.world.player
             monster = self.world.monster
-            window = self.window
-            world = self.world
+
+            self.run_bullet_manager()
 
             if (monster.x == player.x and monster.y == player.y):
                 self.stats.lives_state(self, self.renderer)
 
+            self.process_game_moves()
+
             self.renderer.render(self)
 
-            c = window.getch()
-            if (c == ord('d')):
-                if (player.x < world.max_x - 2):
-                    player.x += 1
-                else:
-                    curses.beep()
-            elif (c == ord('a')):
-                if (player.x > 1):
-                    player.x -= 1
-                else:
-                    curses.beep()
-            elif (c == ord('w')):
-                if (player.y > 1):
-                    player.y -= 1
-                else:
-                    curses.beep()
-            elif (c == ord('s')):
-                if (player.y < world.max_y - 2):
-                    player.y += 1
-                else:
-                    curses.beep()
-            elif (c == ord(' ')):
-                self.world.bullet.shoot(self)
-            elif (c == ord('q')):
-                break
+    def process_game_moves(self):
+        window = self.window
+        world = self.world
+        player = self.world.player
+
+        c = window.getch()
+        if (c == ord('d')):
+            if (player.x < world.max_x - 2):
+                player.x += 1
+            else:
+                curses.beep()
+        elif (c == ord('a')):
+            if (player.x > 1):
+                player.x -= 1
+            else:
+                curses.beep()
+        elif (c == ord('w')):
+            if (player.y > 1):
+                player.y -= 1
+            else:
+                curses.beep()
+        elif (c == ord('s')):
+            if (player.y < world.max_y - 2):
+                player.y += 1
+            else:
+                curses.beep()
+        elif (c == ord(' ')):
+            self.world.bullet = Bullet(player.x, player.y)
+            self.world.bullet.shoot(self)
+        elif (c == ord('m')):
+            self.debug_info.show = not self.debug_info.show
+        elif (c == ord('q')):
+            self.quit = True
+
+    def run_bullet_manager(self):
+        if self.world.bullet and not self.world.bullet.valid:
+            self.world.bullet = None
+
+class DebugInfo():
+    def __init__(self):
+        self.show = False
+    
+    def _render(self, state):
+        player = state.world.player
+        if self.show:
+            # player world pos
+
+            state.window.addstr(0, 15, f"wpos:{player.y}, {player.x}")
 
 # stats of the user in the game
 class Statistics:
@@ -113,7 +144,8 @@ class Statistics:
         if (self.health != 0):
             monster.create_monster(state)
 
-        window.addstr(0,1,f"Lives:{self.health}")
+        # TODO - Render!
+        window.addstr(0, 1, f"Lives:{self.health}")
         window.refresh()
 
         if (self.health == 0):
@@ -123,18 +155,20 @@ class Statistics:
             time.sleep(1.5)
             exit()
 
-    def render(self, state):
+    def _render(self, state):
         window = state.window
-        window.addstr(0,9,f"Score:{self.score}")
-        window.addstr(0,1,f"Lives:{self.health}")
+        window.addstr(0, 9, f"Score:{self.score}")
+        window.addstr(0, 1, f"Lives:{self.health}")
 
 # bullet operations of the user
 class Bullet:
-    def __init__(self, start_y, start_x):
-        self.x = start_x
+    def __init__(self, start_x, start_y):
+        # Add 1 so we spawn next to the player 
+        self.x = start_x + 1
         self.y = start_y
+        self.valid = True
     
-    def render(self, state):
+    def _render(self, state):
         state.window.addch(self.y, self.x, 'a')
 
     # need to delete this later
@@ -147,6 +181,7 @@ class Bullet:
 
         temp_x = (state.world.player.x + 1)
 
+        # TODO - Move this to render in the renderer
         for i in range(3):
             if ((temp_x + i) < (world.max_x - 1)):
                 self.x = temp_x + i
@@ -158,6 +193,8 @@ class Bullet:
                 state.window.refresh()
                 time.sleep(0.5)
                 renderer.render(state)
+        
+        self.valid = False
 
 class Monster:
     def __init__(self):
@@ -181,7 +218,7 @@ class Monster:
                 self.x = random.randint(1, world.max_x - 2)
     
     # renders the monster on the screen
-    def render(self, state):
+    def _render(self, state):
         state.window.addch(self.y, self.x, 'T')
 
     # this is going to be nessesary for when we move the monster toward the player
