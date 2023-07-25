@@ -40,7 +40,8 @@ class Player:
         self.y = start_y
 
     def _render(self, state):
-        state.window.addch(self.y, self.x, 'A')
+        pos = state.camera.to_screen_space(self.x, self.y)
+        state.window.addch(pos[1], pos[0], 'A')
 
 # keeps track of the game world in a 2d grid
 class World:
@@ -50,7 +51,18 @@ class World:
         self.max_y = max_y
         self.monster = Monster()
         self.bullet = None
-    
+
+# keeps track of the current 'camera' position over the 2d world in world space
+class Camera:
+    def __init__(self, start_x, start_y):
+        self.start_x = start_x
+        self.start_y = start_y
+        self.x = start_x
+        self.y = start_y
+
+    def to_screen_space(self, world_space_x, world_space_y):
+        return (world_space_x + self.x, world_space_y + self.y)
+
 # keeps track of variables that change frequently due to user choice, like user coordinate and etc.
 class GameState:
     # pass in 30 for x and 6 for y  
@@ -58,10 +70,15 @@ class GameState:
         self.quit = False
         # TODO: starting with a world whose size is the same as the window, but later it should
         # be made bigger (so we can move around)
-        self.world = World(15, 3, window_max_x, window_max_y)
+        
+        default_start_x = 15
+        default_start_y = 3
+
+        self.world = World(default_start_x, default_start_y, window_max_x, window_max_y)
         self.window = None
         self.stats = Statistics()
         self.renderer = Renderer()
+        self.camera = Camera(0, 0)
         self.debug_info = DebugInfo()
 
     # can get rid of monster and renderer here
@@ -72,7 +89,6 @@ class GameState:
             monster = self.world.monster
 
             self.run_bullet_manager()
-
             if (monster.x == player.x and monster.y == player.y):
                 self.stats.lives_state(self, self.renderer)
 
@@ -84,6 +100,7 @@ class GameState:
         window = self.window
         world = self.world
         player = self.world.player
+        camera = self.camera
 
         c = window.getch()
         if (c == ord('d')):
@@ -113,6 +130,15 @@ class GameState:
             self.debug_info.show = not self.debug_info.show
         elif (c == ord('q')):
             self.quit = True
+        # TODO - should these only be available in certain cases like if debug info is shown?
+        elif (c == ord('k')):
+            camera.x += 1
+        elif (c == ord('h')):
+            camera.x -= 1
+        elif (c == ord('u')):
+            camera.y -= 1
+        elif (c == ord('j')):
+            camera.y += 1
 
     def run_bullet_manager(self):
         if self.world.bullet and not self.world.bullet.valid:
@@ -174,7 +200,8 @@ class Bullet:
         self.valid = True
     
     def _render(self, state):
-        state.window.addch(self.y, self.x, 'a')
+        pos = state.camera.to_screen_space(self.x, self.y)
+        state.window.addch(pos[1], pos[0], 'a')
 
     # need to delete this later
     def shoot(self, state):
@@ -224,7 +251,8 @@ class Monster:
     
     # renders the monster on the screen
     def _render(self, state):
-        state.window.addch(self.y, self.x, 'T')
+        pos = state.camera.to_screen_space(self.x, self.y)
+        state.window.addch(pos[1], pos[0], 'T')
 
     # this is going to be nessesary for when we move the monster toward the player
     # def move_monster(self, state, window_info):
