@@ -6,6 +6,8 @@ import time
 # TODO - see if we can draw the box ourselves so we can have more control over the window
 #         ex. we want to write lines of text below the 'box', right now we can't because curses assumes a border on the edge
 # TODO - OR come up with a place to put text so we can expand debug info
+# TODO - make the bullet a World Object
+# TODO - get rid of the 'hidden' walls that are BORDER of the screen (they need to be in world space)
 
 # renders the window we are currently are at
 class Renderer:
@@ -31,17 +33,54 @@ class Renderer:
 
         window.refresh()
 
-# keeps track of player position on world
-class Player:
+
+class ScreenPos:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+
+class WorldPos:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+
+class WorldObject:
     def __init__(self, start_x, start_y):
         self.start_x = start_x
         self.start_y = start_y
-        self.x = start_x
-        self.y = start_y
+        self.pos = WorldPos(start_x, start_y)
+
+    @property
+    def x(self):
+        return self.pos.x
+    
+    @x.setter
+    def x(self, x):
+        self.pos.x = x
+    
+    @property
+    def y(self):
+        return self.pos.y
+    
+    @y.setter
+    def y(self, y):
+        self.pos.y = y
+
+#  player.pos.x
+#  player.pos.getX()
+#  player.x <- want and want to share with Monster
+#    
+
+# keeps track of player position on world
+class Player(WorldObject):
+    def __init__(self, start_x, start_y):
+        super().__init__(start_x, start_y)
 
     def _render(self, state):
-        pos = state.camera.to_screen_space(self.x, self.y)
-        state.window.addch(pos[1], pos[0], 'A')
+        screen_pos = state.camera.to_screen_space(self.pos)
+        state.window.addch(screen_pos.y, screen_pos.x, 'A')
 
 # keeps track of the game world in a 2d grid
 class World:
@@ -60,8 +99,8 @@ class Camera:
         self.x = start_x
         self.y = start_y
 
-    def to_screen_space(self, world_space_x, world_space_y):
-        return (world_space_x + self.x, world_space_y + self.y)
+    def to_screen_space(self, world_pos):
+        return ScreenPos(world_pos.x + self.x, world_pos.y + self.y)
 
 # keeps track of variables that change frequently due to user choice, like user coordinate and etc.
 class GameState:
@@ -228,10 +267,11 @@ class Bullet:
         
         self.valid = False
 
-class Monster:
+class Monster(WorldObject):
     def __init__(self):
-        self.y = 5
-        self.x = 5
+        # TODO - we need to either pass this in or do something different so 
+        # it's not static.
+        super().__init__(5, 5)
 
     # creates a monster at a random location on the map
     def create_monster(self, state):
@@ -248,11 +288,11 @@ class Monster:
             self.x = random.randint(1, world.max_x - 2)
             while (self.x == player.x):
                 self.x = random.randint(1, world.max_x - 2)
-    
+
     # renders the monster on the screen
     def _render(self, state):
-        pos = state.camera.to_screen_space(self.x, self.y)
-        state.window.addch(pos[1], pos[0], 'T')
+        screen_pos = state.camera.to_screen_space(self.pos)
+        state.window.addch(screen_pos.y, screen_pos.x, 'T')
 
     # this is going to be nessesary for when we move the monster toward the player
     # def move_monster(self, state, window_info):
