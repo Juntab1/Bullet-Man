@@ -101,6 +101,78 @@ class Camera:
 
     def to_screen_space(self, world_pos):
         return ScreenPos(world_pos.x + self.x, world_pos.y + self.y)
+    
+
+class GameCommands:
+    # TODO - Should these be something else besides numerals?
+    RIGHT = 1
+    LEFT = 2
+    UP = 3
+    DOWN = 4
+    SHOOT = 5
+    TOGGLE_DEBUG_INFO = 6
+    QUIT = 7
+    CAMERA_RIGHT = 8
+    CAMERA_LEFT = 9
+    CAMERA_UP = 10
+    CAMERA_DOWN = 11
+
+    def __init__(self): pass
+
+    def on_up(self, state):
+        player = state.world.player
+        if (player.y > 1):
+            player.y -= 1
+        else:
+            curses.beep()
+
+    def on_left(self, state):
+        player = state.world.player
+        if (player.x > 1):
+            player.x -= 1
+        else:
+            curses.beep()
+
+    def on_down(self, state):
+        world = state.world
+        player = state.world.player
+        if (player.y < world.max_y - 2):
+            player.y += 1
+        else:
+            curses.beep()
+
+    def on_right(self, state):
+        world = state.world
+        player = state.world.player
+        if (player.x < world.max_x - 2):
+            player.x += 1
+        else:
+            curses.beep()
+
+    def on_shoot(self, state):
+        world = state.world
+        player = state.world.player
+
+        world.bullet = Bullet(player.x, player.y)
+        world.bullet.shoot(state)
+
+    def toggle_debug_info(self, state):
+        state.debug_info.show = not state.debug_info.show
+
+    def quit(self, state):
+        state.quit = True
+
+    def camera_right(self, state):
+        state.camera.x += 1
+
+    def camera_left(self, state):
+        state.camera.x -= 1
+
+    def camera_up(self, state):
+        state.camera.y -= 1
+    
+    def camera_down(self, state):
+        state.camera.y += 1
 
 # keeps track of variables that change frequently due to user choice, like user coordinate and etc.
 class GameState:
@@ -119,6 +191,37 @@ class GameState:
         self.renderer = Renderer()
         self.camera = Camera(0, 0)
         self.debug_info = DebugInfo()
+        self.game_commands = GameCommands()
+        self.commands = {
+            ord('w') : GameCommands.UP,
+            ord('a') : GameCommands.LEFT,
+            ord('s') : GameCommands.DOWN,
+            ord('d') : GameCommands.RIGHT,
+            ord(' ') : GameCommands.SHOOT,
+            ord('m') : GameCommands.TOGGLE_DEBUG_INFO,
+            ord('q') : GameCommands.QUIT,
+            ord('k') : GameCommands.CAMERA_RIGHT,
+            ord('h') : GameCommands.CAMERA_LEFT,
+            ord('u') : GameCommands.CAMERA_UP,
+            ord('j') : GameCommands.CAMERA_DOWN,
+        }
+
+        self.command_handlers = {
+            GameCommands.UP : self.game_commands.on_up,
+            GameCommands.LEFT : self.game_commands.on_left,
+            GameCommands.DOWN : self.game_commands.on_down,
+            GameCommands.RIGHT : self.game_commands.on_right,
+            GameCommands.SHOOT : self.game_commands.on_shoot,
+            GameCommands.TOGGLE_DEBUG_INFO : self.game_commands.toggle_debug_info,
+            GameCommands.QUIT : self.game_commands.quit,
+            GameCommands.CAMERA_RIGHT : self.game_commands.camera_right,
+            GameCommands.CAMERA_LEFT : self.game_commands.camera_left,
+            GameCommands.CAMERA_UP : self.game_commands.camera_up,
+            GameCommands.CAMERA_DOWN: self.game_commands.camera_down,
+        }
+
+        self.pending_commands = list()
+
 
     # can get rid of monster and renderer here
     def run(self):
@@ -131,53 +234,27 @@ class GameState:
             if (monster.x == player.x and monster.y == player.y):
                 self.stats.lives_state(self, self.renderer)
 
+            self.read_input()
             self.process_game_moves()
 
             self.renderer.render(self)
 
-    def process_game_moves(self):
-        window = self.window
-        world = self.world
-        player = self.world.player
-        camera = self.camera
+    def read_input(self):
+        c = self.window.getch()
 
-        c = window.getch()
-        if (c == ord('d')):
-            if (player.x < world.max_x - 2):
-                player.x += 1
-            else:
-                curses.beep()
-        elif (c == ord('a')):
-            if (player.x > 1):
-                player.x -= 1
-            else:
-                curses.beep()
-        elif (c == ord('w')):
-            if (player.y > 1):
-                player.y -= 1
-            else:
-                curses.beep()
-        elif (c == ord('s')):
-            if (player.y < world.max_y - 2):
-                player.y += 1
-            else:
-                curses.beep()
-        elif (c == ord(' ')):
-            self.world.bullet = Bullet(player.x, player.y)
-            self.world.bullet.shoot(self)
-        elif (c == ord('m')):
-            self.debug_info.show = not self.debug_info.show
-        elif (c == ord('q')):
-            self.quit = True
-        # TODO - should these only be available in certain cases like if debug info is shown?
-        elif (c == ord('k')):
-            camera.x += 1
-        elif (c == ord('h')):
-            camera.x -= 1
-        elif (c == ord('u')):
-            camera.y -= 1
-        elif (c == ord('j')):
-            camera.y += 1
+        command_id = self.commands.get(c, None)
+        if not command_id:
+            return # error handling later! (this key was invalid)
+        
+        self.pending_commands.append(command_id)
+        
+
+    def process_game_moves(self):
+        for command_id in self.pending_commands:
+            command_handler = self.command_handlers.get(command_id, None)
+            if not command_handler:
+                continue # error handling later! (this command SHOUlD have been there!)
+            command_handler(self)
 
     def run_bullet_manager(self):
         if self.world.bullet and not self.world.bullet.valid:
