@@ -18,8 +18,10 @@ class Renderer:
         window = state.window
         stats = state.stats
         debug_info = state.debug_info
+        world = state.world
         player = state.world.player
         monster = state.world.monster
+        bullet = state.world.bullet
         
         window.clear()
         window.box()
@@ -28,8 +30,8 @@ class Renderer:
         player._render(state)
         monster._render(state)
         debug_info._render(state)
-
-        # TODO - Move bullet here
+        if bullet:
+            bullet._render(state)
 
         window.refresh()
 
@@ -154,7 +156,6 @@ class GameCommands:
         player = state.world.player
 
         world.bullet = Bullet(player.x, player.y)
-        world.bullet.shoot(state)
 
     def toggle_debug_info(self, state):
         state.debug_info.show = not state.debug_info.show
@@ -179,6 +180,7 @@ class GameState:
     # pass in 30 for x and 6 for y  
     def __init__(self, window_max_y, window_max_x):
         self.quit = False
+        self.start = 0
         # TODO: starting with a world whose size is the same as the window, but later it should
         # be made bigger (so we can move around)
         
@@ -222,27 +224,24 @@ class GameState:
 
         self.pending_commands = list()
 
-
-    # can get rid of monster and renderer here
     def run(self):
-        self.world.monster.create_monster(self)
         while not self.quit:
             player = self.world.player
             monster = self.world.monster
 
-            self.run_bullet_manager()
             if (monster.x == player.x and monster.y == player.y):
                 self.stats.lives_state(self, self.renderer)
 
             self.read_input()
             self.process_game_moves()
+            self.run_bullet_manager()
 
             self.renderer.render(self)
 
     def read_input(self):
         c = self.window.getch()
 
-        command_id = self.commands.get(c, None)
+        command_id = self.commands.get(c)
         if not command_id:
             return # error handling later! (this key was invalid)
         
@@ -251,20 +250,27 @@ class GameState:
 
     def process_game_moves(self):
         for command_id in self.pending_commands:
-            command_handler = self.command_handlers.get(command_id, None)
+            command_handler = self.command_handlers.get(command_id)
             if not command_handler:
                 continue # error handling later! (this command SHOUlD have been there!)
             command_handler(self)
+        self.pending_commands.clear()
+
 
     def run_bullet_manager(self):
-        if self.world.bullet and not self.world.bullet.valid:
+        if not self.world.bullet:
+            return
+        
+        self.world.bullet.simulate(self)
+
+        if self.world.bullet.shots_remaining < 0:
             self.world.bullet = None
 
 class DebugInfo():
     def __init__(self):
         self.show = False
     
-    def _render(self, state):
+    def _render(self, state): 
         player = state.world.player
         if self.show:
             # player world pos
@@ -283,7 +289,7 @@ class Statistics:
     def decr_health(self):
         self.health -= 1
 
-    def lives_state(self, state, render):
+    def lives_state(self, state, renderer):
         window = state.window
         monster = state.world.monster
         self.decr_health()
@@ -291,12 +297,10 @@ class Statistics:
         if (self.health != 0):
             monster.create_monster(state)
 
-        # TODO - Render!
-        window.addstr(0, 1, f"Lives:{self.health}")
-        window.refresh()
+        renderer.render(state)
 
         if (self.health == 0):
-            render.render(state)
+            renderer.render(state)
             window.addstr(2, 10, f"YOU LOSE!")
             window.refresh()
             time.sleep(1.5)
@@ -308,47 +312,47 @@ class Statistics:
         window.addstr(0, 1, f"Lives:{self.health}")
 
 # bullet operations of the user
-class Bullet:
+class Bullet(WorldObject):
     def __init__(self, start_x, start_y):
         # Add 1 so we spawn next to the player 
-        self.x = start_x + 1
-        self.y = start_y
-        self.valid = True
+        super().__init__(start_x, start_y)
+        self.x_count = 1
+        self.shots_remaining = 3
+        self.last_sim_time = time.time()
+        self.frame_count = .1
     
     def _render(self, state):
-        pos = state.camera.to_screen_space(self.x, self.y)
-        state.window.addch(pos[1], pos[0], 'a')
+        screen_pos = state.camera.to_screen_space(self.pos)
+        state.window.addch(screen_pos.y, screen_pos.x, 'a')
 
     # need to delete this later
-    def shoot(self, state):
-        player = state.world.player
+    def simulate(self, state):
         world = state.world
         stats = state.stats
         monster = state.world.monster
-        renderer = state.renderer
 
-        temp_x = (state.world.player.x + 1)
+        now = time.time()
+        if (now - self.last_sim_time) <= .5:
+            return
+ 
+        temp_x = (self.start_x + self.x_count)
 
-        # TODO - Move this to render in the renderer
-        for i in range(3):
-            if ((temp_x + i) < (world.max_x - 1)):
-                self.x = temp_x + i
-                self.render(state)
-                if (monster.y == self.y and monster.x == self.x):
-                    monster.create_monster(state)
-                    curses.flash()
-                    stats.incr_score()
-                state.window.refresh()
-                time.sleep(0.5)
-                renderer.render(state)
-        
-        self.valid = False
+        if ((temp_x) < (world.max_x - 1)):
+            self.x = temp_x 
+            if (monster.y == self.y and monster.x == self.x):
+                monster.create_monster(state)
+                curses.flash()
+                stats.incr_score()
+            self.x_count += 1
+
+        self.shots_remaining -= 1
+        self.last_sim_time = now
 
 class Monster(WorldObject):
     def __init__(self):
         # TODO - we need to either pass this in or do something different so 
         # it's not static.
-        super().__init__(5, 5)
+        super().__init__(3, 3)
 
     # creates a monster at a random location on the map
     def create_monster(self, state):
@@ -389,6 +393,7 @@ def main():
     # later have to put world length inside of it instead of just window
     game_state = GameState(6, 30)
     game_state.window = curses.newwin(6, 30)
+    game_state.window.nodelay(True)
 
     render = Renderer()
     render.render(game_state)
