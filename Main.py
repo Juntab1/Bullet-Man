@@ -9,6 +9,22 @@ import time
 # TODO - make the bullet a World Object
 # TODO - get rid of the 'hidden' walls that are BORDER of the screen (they need to be in world space)
 
+# Utility functions not associated with a class
+
+def point_in_rect(rx1, ry1, rx2, ry2, x, y):
+    """
+        Given a rectangle from bottom-left (rx1, ry1) to upper-right (rx2, ry2), 
+        see if point (x, y) is inside of it
+    """
+    if (x > rx1 and x < rx2 and
+        y > ry1 and y < ry2) :
+        return True
+    else :
+        return False
+    
+def get_rect_from_center(x, y, w, h):
+    return ((int(x - w/2), int(y - h/2)), (int(x + w/2), int(y + h/2)))
+
 # renders the window we are currently are at
 class Renderer:
     def __init__(self):
@@ -22,14 +38,18 @@ class Renderer:
         player = state.world.player
         monster = state.world.monster
         bullet = state.world.bullet
+        camera = state.camera
         
         window.clear()
         window.box()
 
         stats._render(state)
-        player._render(state)
-        monster._render(state)
         debug_info._render(state)
+        
+        player._render(state)
+
+        if camera.is_visible(monster.pos):
+            monster._render(state)
         if bullet:
             bullet._render(state)
 
@@ -82,7 +102,7 @@ class Player(WorldObject):
 
     def _render(self, state):
         screen_pos = state.camera.to_screen_space(self.pos)
-        state.window.addch(screen_pos.y, screen_pos.x, 'A')
+        state.window.addch(self.pos.y, self.pos.x, 'A')
 
 # keeps track of the game world in a 2d grid
 class World:
@@ -95,15 +115,27 @@ class World:
 
 # keeps track of the current 'camera' position over the 2d world in world space
 class Camera:
-    def __init__(self, start_x, start_y):
+    def __init__(self, start_x, start_y, width, height):
+
+        # indicates how large our 'view port' is
+        self.width = width 
+        self.height = height
+
+        # all coordinates are in world space
         self.start_x = start_x
         self.start_y = start_y
         self.x = start_x
         self.y = start_y
 
+    def is_visible(self, world_pos):
+        # rectangle in screen_space around camera first
+        rect = get_rect_from_center(self.x, self.y, self.width, self.height)
+
+        # determine if the world_pos is in that rectangle
+        return point_in_rect(rect[0][0], rect[0][1], rect[1][0], rect[1][1], world_pos.x, world_pos.y)
+        
     def to_screen_space(self, world_pos):
         return ScreenPos(world_pos.x + self.x, world_pos.y + self.y)
-    
 
 class GameCommands:
     # TODO - Should these be something else besides numerals?
@@ -123,33 +155,29 @@ class GameCommands:
 
     def on_up(self, state):
         player = state.world.player
-        if (player.y > 1):
-            player.y -= 1
-        else:
-            curses.beep()
+        camera = state.camera
+        camera.y -= 1
+        player.y -= 1
 
     def on_left(self, state):
         player = state.world.player
-        if (player.x > 1):
-            player.x -= 1
-        else:
-            curses.beep()
+        camera = state.camera
+
+        camera.x -= 1
+        player.x -= 1
 
     def on_down(self, state):
-        world = state.world
         player = state.world.player
-        if (player.y < world.max_y - 2):
-            player.y += 1
-        else:
-            curses.beep()
+        camera = state.camera
+        camera.y += 1
+        player.y += 1
 
     def on_right(self, state):
-        world = state.world
-        player = state.world.player
-        if (player.x < world.max_x - 2):
-            player.x += 1
-        else:
-            curses.beep()
+        camera = state.world.camera
+        player = state.player
+
+        camera.x += 1
+        player.x += 1
 
     def on_shoot(self, state):
         world = state.world
@@ -191,7 +219,7 @@ class GameState:
         self.window = None
         self.stats = Statistics()
         self.renderer = Renderer()
-        self.camera = Camera(0, 0)
+        self.camera = Camera(int(window_max_x / 2), int(window_max_y / 2), window_max_x, window_max_y)
         self.debug_info = DebugInfo()
         self.game_commands = GameCommands()
         self.commands = {
@@ -352,23 +380,25 @@ class Monster(WorldObject):
     def __init__(self):
         # TODO - we need to either pass this in or do something different so 
         # it's not static.
-        super().__init__(3, 3)
+        super().__init__(10, 50)
 
     # creates a monster at a random location on the map
     def create_monster(self, state):
         world = state.world
         player = state.world.player
-        self.y = random.randint(2, world.max_y - 2)
-        self.x = random.randint(2, world.max_x - 2)
+        self.y = 50
+        self.x = 10
+        # self.y = random.randint(2, world.max_y - 2)
+        # self.x = random.randint(2, world.max_x - 2)
 
-        if (self.y == player.y):
-            self.y = random.randint(1, world.max_y - 2)
-            while (self.y == player.y):
-                self.y = random.randint(1, world.max_y - 2)
-        elif (self.x == player.x):
-            self.x = random.randint(1, world.max_x - 2)
-            while (self.x == player.x):
-                self.x = random.randint(1, world.max_x - 2)
+        # if (self.y == player.y):
+        #     self.y = random.randint(1, world.max_y - 2)
+        #     while (self.y == player.y):
+        #         self.y = random.randint(1, world.max_y - 2)
+        # elif (self.x == player.x):
+        #     self.x = random.randint(1, world.max_x - 2)
+        #     while (self.x == player.x):
+        #         self.x = random.randint(1, world.max_x - 2)
 
     # renders the monster on the screen
     def _render(self, state):
