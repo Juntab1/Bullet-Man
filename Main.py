@@ -23,7 +23,7 @@ def point_in_rect(rx1, ry1, rx2, ry2, x, y):
         return False
     
 def get_rect_from_center(x, y, w, h):
-    return ((int(x), int(y)), (int(x + w), int(y + h)))
+    return ((int(x - w/2), int(y - h/2)), (int(x + w/2), int(y + h/2)))
 
 # renders the window we are currently are at
 class Renderer:
@@ -102,7 +102,7 @@ class Player(WorldObject):
 
     def _render(self, state):
         screen_pos = state.camera.to_screen_space(self.pos)
-        state.window.addch(self.pos.y - state.camera.y_change, self.pos.x - state.camera.x_change, 'A')
+        state.window.addch(screen_pos.y, screen_pos.x, 'A')
 
 # keeps track of the game world in a 2d grid
 class World:
@@ -122,22 +122,52 @@ class Camera:
         self.width = width 
         self.height = height
 
-        # don't think we need these two variables now
+        # not used now, leaving them now in case they are useful in the future
         self.start_x = start_x
         self.start_y = start_y
 
-        self.x_change = 0
-        self.y_change = 0
+        self.x = start_x
+        self.y = start_y
 
     def is_visible(self, world_pos):
         # rectangle in screen_space around camera first
-        rect = get_rect_from_center(self.x_change, self.y_change, self.width, self.height)
+        rect = get_rect_from_center(self.x, self.y, self.width, self.height)
 
         # determine if the world_pos is in that rectangle
         return point_in_rect(rect[0][0], rect[0][1], rect[1][0], rect[1][1], world_pos.x, world_pos.y)
         
     def to_screen_space(self, world_pos):
-        return ScreenPos(world_pos.x - self.x_change, world_pos.y - self.y_change)
+        # This function calculates SCREEN position from a WORLD position.
+        # The SCREEN position MAY be off the actual 'screen' that is rendered,
+        # and as a result, something other code should check (perhaps before
+        # this function is called) if the object could actually be visible
+        # from the Camera's WORLD position.
+
+        # How this works:
+        # to get the screen position of an object, we take the camera's
+        # current WORLD position, and subtract it from the supplied function
+        # argument `world_pos`. This produces an `offset_x` and `offset_y` respectively.
+        # These may be negative or positive, because they are offsets. 
+        #
+        # We then take the camera's current SCREEN posiition, and add the offsets
+        # to it. This should produce a screen space coordinate that is the 'correct'
+        # distance from the center of the screen.
+        #
+        # This works because the camera's SCREEN position is always height/2 and
+        # width/2. 
+
+        # These tell us how far away the given object (identified)
+        # by world_pos are from the camera's WORLD space position.
+        x_offset = self.x - world_pos.x
+        y_offset = self.y - world_pos.y
+
+        # camera's SCREEN space position is always (x = w/2, y = h/2)
+        camera_screen_x = int(self.width / 2)
+        camera_screen_y = int(self.height / 2)
+
+        # Produce a screen space position based on the offsets
+        # offsets can be though of as "distance" from the camera. 
+        return ScreenPos(camera_screen_x - x_offset, camera_screen_y - y_offset)
 
 class GameCommands:
     # TODO - Should these be something else besides numerals?
@@ -158,28 +188,28 @@ class GameCommands:
     def on_up(self, state):
         player = state.world.player
         camera = state.camera
-        camera.y_change -= 1
+        camera.y -= 1
         player.y -= 1
 
     def on_left(self, state):
         player = state.world.player
         camera = state.camera
 
-        camera.x_change -= 1
+        camera.x -= 1
         player.x -= 1
 
     def on_down(self, state):
         camera = state.camera
         player = state.world.player
 
-        camera.y_change += 1
+        camera.y += 1
         player.y += 1
 
     def on_right(self, state):
         camera = state.camera
         player = state.world.player
 
-        camera.x_change += 1
+        camera.x += 1
         player.x += 1
 
     def on_shoot(self, state):
@@ -405,7 +435,7 @@ class Monster(WorldObject):
     # renders the monster on the screen
     def _render(self, state):
         screen_pos = state.camera.to_screen_space(self.pos)
-        state.window.addch(self.pos.y - state.camera.y_change, self.pos.x - state.camera.x_change, 'T')
+        state.window.addch(screen_pos.y, screen_pos.x, 'T')
 
     # this is going to be nessesary for when we move the monster toward the player
     # def move_monster(self, state, window_info):
