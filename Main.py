@@ -23,7 +23,7 @@ def point_in_rect(rx1, ry1, rx2, ry2, x, y):
         return False
     
 def get_rect_from_center(x, y, w, h):
-    return ((int(x - w/2), int(y - h/2)), (int(x + w/2), int(y + h/2)))
+    return ((int(x), int(y)), (int(x + w), int(y + h)))
 
 # renders the window we are currently are at
 class Renderer:
@@ -102,7 +102,7 @@ class Player(WorldObject):
 
     def _render(self, state):
         screen_pos = state.camera.to_screen_space(self.pos)
-        state.window.addch(self.pos.y, self.pos.x, 'A')
+        state.window.addch(self.pos.y - state.camera.y_change, self.pos.x - state.camera.x_change, 'A')
 
 # keeps track of the game world in a 2d grid
 class World:
@@ -115,27 +115,29 @@ class World:
 
 # keeps track of the current 'camera' position over the 2d world in world space
 class Camera:
+    # I think we don't need to pass in start_x and start_y 
     def __init__(self, start_x, start_y, width, height):
 
         # indicates how large our 'view port' is
         self.width = width 
         self.height = height
 
-        # all coordinates are in world space
+        # don't think we need these two variables now
         self.start_x = start_x
         self.start_y = start_y
-        self.x = start_x
-        self.y = start_y
+
+        self.x_change = 0
+        self.y_change = 0
 
     def is_visible(self, world_pos):
         # rectangle in screen_space around camera first
-        rect = get_rect_from_center(self.x, self.y, self.width, self.height)
+        rect = get_rect_from_center(self.x_change, self.y_change, self.width, self.height)
 
         # determine if the world_pos is in that rectangle
         return point_in_rect(rect[0][0], rect[0][1], rect[1][0], rect[1][1], world_pos.x, world_pos.y)
         
     def to_screen_space(self, world_pos):
-        return ScreenPos(world_pos.x + self.x, world_pos.y + self.y)
+        return ScreenPos(world_pos.x - self.x_change, world_pos.y - self.y_change)
 
 class GameCommands:
     # TODO - Should these be something else besides numerals?
@@ -156,27 +158,28 @@ class GameCommands:
     def on_up(self, state):
         player = state.world.player
         camera = state.camera
-        camera.y -= 1
+        camera.y_change -= 1
         player.y -= 1
 
     def on_left(self, state):
         player = state.world.player
         camera = state.camera
 
-        camera.x -= 1
+        camera.x_change -= 1
         player.x -= 1
 
     def on_down(self, state):
-        player = state.world.player
         camera = state.camera
-        camera.y += 1
+        player = state.world.player
+
+        camera.y_change += 1
         player.y += 1
 
     def on_right(self, state):
-        camera = state.world.camera
-        player = state.player
+        camera = state.camera
+        player = state.world.player
 
-        camera.x += 1
+        camera.x_change += 1
         player.x += 1
 
     def on_shoot(self, state):
@@ -300,9 +303,8 @@ class DebugInfo():
     
     def _render(self, state): 
         player = state.world.player
-        if self.show:
-            # player world pos
 
+        if self.show:
             state.window.addstr(0, 15, f"wpos:{player.y}, {player.x}")
 
 # stats of the user in the game
@@ -380,14 +382,14 @@ class Monster(WorldObject):
     def __init__(self):
         # TODO - we need to either pass this in or do something different so 
         # it's not static.
-        super().__init__(10, 50)
+        super().__init__(3, 3)
 
     # creates a monster at a random location on the map
     def create_monster(self, state):
         world = state.world
         player = state.world.player
-        self.y = 50
-        self.x = 10
+        self.y = 3
+        self.x = 3
         # self.y = random.randint(2, world.max_y - 2)
         # self.x = random.randint(2, world.max_x - 2)
 
@@ -403,7 +405,7 @@ class Monster(WorldObject):
     # renders the monster on the screen
     def _render(self, state):
         screen_pos = state.camera.to_screen_space(self.pos)
-        state.window.addch(screen_pos.y, screen_pos.x, 'T')
+        state.window.addch(self.pos.y - state.camera.y_change, self.pos.x - state.camera.x_change, 'T')
 
     # this is going to be nessesary for when we move the monster toward the player
     # def move_monster(self, state, window_info):
