@@ -23,7 +23,7 @@ def point_in_rect(rx1, ry1, rx2, ry2, x, y):
         return False
     
 def get_rect_from_center(x, y, w, h):
-    return ((int(x), int(y)), (int(x + w), int(y + h)))
+    return ((int(x - w/2), int(y - h/2)), (int(x + w/2), int(y + h/2)))
 
 # renders the window we are currently are at
 class Renderer:
@@ -48,8 +48,8 @@ class Renderer:
         
         player._render(state)
 
-        if camera.is_visible(monster.pos):
-            monster._render(state)
+        monster._render(state)
+
         if bullet:
             bullet._render(state)
 
@@ -101,8 +101,13 @@ class Player(WorldObject):
         super().__init__(start_x, start_y)
 
     def _render(self, state):
-        screen_pos = state.camera.to_screen_space(self.pos)
-        state.window.addch(self.pos.y - state.camera.y_change, self.pos.x - state.camera.x_change, 'A')
+        camera = state.camera
+        
+        if camera.is_visible(self.pos):
+            screen_pos = state.camera.to_screen_space(self.pos)
+            state.window.addch(screen_pos.y, screen_pos.x, 'A')
+        else:
+            return
 
 # keeps track of the game world in a 2d grid
 class World:
@@ -126,18 +131,25 @@ class Camera:
         self.start_x = start_x
         self.start_y = start_y
 
-        self.x_change = 0
-        self.y_change = 0
+        self.x = start_x
+        self.y = start_y
 
     def is_visible(self, world_pos):
         # rectangle in screen_space around camera first
-        rect = get_rect_from_center(self.x_change, self.y_change, self.width, self.height)
+        rect = get_rect_from_center(self.x, self.y, self.width, self.height)
 
         # determine if the world_pos is in that rectangle
         return point_in_rect(rect[0][0], rect[0][1], rect[1][0], rect[1][1], world_pos.x, world_pos.y)
         
     def to_screen_space(self, world_pos):
-        return ScreenPos(world_pos.x - self.x_change, world_pos.y - self.y_change)
+
+        offSet_x = self.x - world_pos.x
+        offSet_y = self.y - world_pos.y
+
+        half_x = int(self.width / 2)
+        half_y = int(self.height / 2)
+
+        return ScreenPos(half_x - offSet_x, half_y - offSet_y)
 
 class GameCommands:
     # TODO - Should these be something else besides numerals?
@@ -158,28 +170,28 @@ class GameCommands:
     def on_up(self, state):
         player = state.world.player
         camera = state.camera
-        camera.y_change -= 1
+        camera.y -= 1
         player.y -= 1
 
     def on_left(self, state):
         player = state.world.player
         camera = state.camera
 
-        camera.x_change -= 1
+        camera.x -= 1
         player.x -= 1
 
     def on_down(self, state):
         camera = state.camera
         player = state.world.player
 
-        camera.y_change += 1
+        camera.y += 1
         player.y += 1
 
     def on_right(self, state):
         camera = state.camera
         player = state.world.player
 
-        camera.x_change += 1
+        camera.x += 1
         player.x += 1
 
     def on_shoot(self, state):
@@ -352,8 +364,12 @@ class Bullet(WorldObject):
         self.frame_count = .1
     
     def _render(self, state):
-        screen_pos = state.camera.to_screen_space(self.pos)
-        state.window.addch(screen_pos.y, screen_pos.x, 'a')
+        camera = state.camera
+        if camera.is_visible(self.pos):
+            screen_pos = state.camera.to_screen_space(self.pos)
+            state.window.addch(screen_pos.y, screen_pos.x, 'a')
+        else:
+            return
 
     # need to delete this later
     def simulate(self, state):
@@ -404,8 +420,12 @@ class Monster(WorldObject):
 
     # renders the monster on the screen
     def _render(self, state):
-        screen_pos = state.camera.to_screen_space(self.pos)
-        state.window.addch(self.pos.y - state.camera.y_change, self.pos.x - state.camera.x_change, 'T')
+        camera = state.camera
+        if camera.is_visible(self.pos):
+            screen_pos = state.camera.to_screen_space(self.pos)
+            state.window.addch(screen_pos.y, screen_pos.x, 'T')
+        else:
+            return
 
     # this is going to be nessesary for when we move the monster toward the player
     # def move_monster(self, state, window_info):
