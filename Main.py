@@ -43,6 +43,7 @@ class Renderer:
         window.clear()
         window.box()
 
+        world._render(state)
         stats._render(state)
         debug_info._render(state)
         
@@ -111,12 +112,46 @@ class Player(WorldObject):
 
 # keeps track of the game world in a 2d grid
 class World:
-    def __init__(self, player_start_x, player_start_y, max_x, max_y):
+    def __init__(self, player_start_x, player_start_y, max_x, max_y, world_x_compare_window, world_y_compare_window):
         self.player = Player(player_start_x, player_start_y)
         self.max_x = max_x
         self.max_y = max_y
         self.monster = Monster()
         self.bullet = None
+        self.world_x_compare_window = world_x_compare_window
+        self.world_y_compare_window = world_y_compare_window
+
+    def _render(self, state):
+        camera = state.camera
+        
+        rect = get_rect_from_center(camera.x, camera.y, camera.width, camera.height)
+
+        # this if statement relies on left side wall world view
+        if (rect[0][0] <= (-self.world_x_compare_window)):
+            for i in range(4):
+            #  I forgot the y and x values have to be in screen space not in world space screen space is 
+            # always from 0,0 to 30,12
+                if (rect[1][1] <= self.max_y):
+                    state.window.addch(1 + i, -state.world.player.x, 'B')
+
+        # elif (camera.width == (world_x_compare_window + state.window_max_x)):
+        #     for i in range(camera.height):
+        #         pass
+
+        # I might have this if statement wrong too
+        if (rect[1][1] == (state.world_max_y)):
+            for i in range(28):
+                # I don't know what to do for this if statement
+                # 15 is just the 
+                if (rect[0][0] <= -self.world_x_compare_window):
+                    state.window.addch(4, 1 + i, 'B')
+        else:
+            return
+
+        # elif (camera.width == (world_y_compare_window + state.window_max_y)):
+        #     for i in range(camera.height):
+        #         pass
+
 
 # keeps track of the current 'camera' position over the 2d world in world space
 class Camera:
@@ -177,8 +212,9 @@ class GameCommands:
         player = state.world.player
         camera = state.camera
 
-        camera.x -= 1
-        player.x -= 1
+        if (player.x > (-state.world_x_compare_window + 1) and player.x < (state.world_max_x - state.world_x_compare_window)):
+            camera.x -= 1
+            player.x -= 1
 
     def on_down(self, state):
         camera = state.camera
@@ -221,7 +257,7 @@ class GameCommands:
 # keeps track of variables that change frequently due to user choice, like user coordinate and etc.
 class GameState:
     # pass in 30 for x and 6 for y  
-    def __init__(self, window_max_y, window_max_x):
+    def __init__(self, window_max_y, window_max_x, world_max_y, world_max_x):
         self.quit = False
         self.start = 0
         # TODO: starting with a world whose size is the same as the window, but later it should
@@ -230,13 +266,20 @@ class GameState:
         default_start_x = 15
         default_start_y = 3
 
-        self.world = World(default_start_x, default_start_y, window_max_x, window_max_y)
+        self.world_max_x = world_max_x
+        self.world_max_y = world_max_y
+        self.world_x_compare_window = (world_max_x - window_max_x)/2
+        self.world_y_compare_window = (world_max_y - window_max_y)/2
+        self.world = World(default_start_x, default_start_y, world_max_x, world_max_y, self.world_x_compare_window, self.world_y_compare_window)
+
         self.window = None
         self.stats = Statistics()
         self.renderer = Renderer()
         self.camera = Camera(int(window_max_x / 2), int(window_max_y / 2), window_max_x, window_max_y)
         self.debug_info = DebugInfo()
         self.game_commands = GameCommands()
+        
+
         self.commands = {
             ord('w') : GameCommands.UP,
             ord('a') : GameCommands.LEFT,
@@ -317,7 +360,7 @@ class DebugInfo():
         player = state.world.player
 
         if self.show:
-            state.window.addstr(0, 15, f"wpos:{player.y}, {player.x}")
+            state.window.addstr(0, 17, f"wpos:{player.y}, {player.x}")
 
 # stats of the user in the game
 class Statistics:
@@ -443,7 +486,7 @@ def main():
     curses.curs_set(0)
 
     # later have to put world length inside of it instead of just window
-    game_state = GameState(6, 30)
+    game_state = GameState(6, 30, 12, 60)
     game_state.window = curses.newwin(6, 30)
     game_state.window.nodelay(True)
 
