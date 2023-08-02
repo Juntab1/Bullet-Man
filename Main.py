@@ -128,55 +128,31 @@ class World:
         
         rect = get_rect_from_center(camera.x, camera.y, camera.width, camera.height)
 
-        # this if statement relies on left side wall world view
+        # left wall
         if (rect[0][0] < (-self.world_x_compare_window)):
             for i in range(4):
-            #  I forgot the y and x values have to be in screen space not in world space screen space is 
-            # always from 0,0 to 30,12
                 if (rect[1][1] <= self.max_y):
                     state.window.addch(1 + i, -state.world.player.x, 'B')
-                if (rect[1][1] == (self.max_y)):
-                    for i in range(camera.width - 2):
-                        if (-state.world.player.x + i <= camera.width - 2):
-                            state.window.addch(4, -state.world.player.x + i, 'B')
             
-        # this if statement relies on right side wall world view
-        if (rect[1][0] > (self.max_x - self.world_x_compare_window)):
+        # right wall
+        if (rect[1][0] > (self.max_x - self.world_x_compare_window + 1)):
             for i in range(4):
-            #  I forgot the y and x values have to be in screen space not in world space screen space is 
-            # always from 0,0 to 30,12
-                if (rect[1][1] <= self.max_y):
-                    # right side wall
-                    state.window.addch(1 + i, ((camera.width * 2 ) - state.world.player.x), 'B')
-                # if (rect[1][1] == (self.max_y)):
-                #     for i in range(camera.width - 2):
-                #         if (-state.world.player.x + i <= camera.width - 2):
-                #             # bottom wall
-                #             state.window.addch(4, -state.world.player.x + i, 'B')
+                state.window.addch(1 + i, ((camera.width * 2) - state.world.player.x), 'B')
                 
-        if (rect[0][0] >= (-self.world_x_compare_window) and rect[1][1] == (self.max_y)):
+        # bottom wall
+        if (rect[1][1] >= (self.max_y)):
             for i in range(camera.width - 2):
-                    if (i + state.world.player.x < self.max_x):
+                    if (rect[1][0] > (self.max_x - self.world_x_compare_window + 1)):
+                        if (i + state.world.player.x < self.max_x):
+                            state.window.addch(4, 1 + i, 'B')
+                    elif (rect[0][0] < (- self.world_x_compare_window)):
+                        if(-state.world.player.x + i <= camera.width - 2):
+                            state.window.addch(4, -state.world.player.x + i, 'B')
+                    else:
                         state.window.addch(4, 1 + i, 'B')
-
-        # elif (camera.width == (world_x_compare_window + state.window_max_x)):
-        #     for i in range(camera.height):
-        #         pass
-
-        # I might have this if statement wrong too
-
-        # if (rect[1][1] == (state.world_max_y)):
-        #     for i in range(28):
-        #         # I don't know what to do for this if statement
-        #         # 15 is just the 
-        #         if (rect[0][0] <= -self.world_x_compare_window):
-        #             state.window.addch(4, 1 + i, 'B')
+                    
         else:
             return
-
-        # elif (camera.width == (world_y_compare_window + state.window_max_y)):
-        #     for i in range(camera.height):
-        #         pass
 
 
 # keeps track of the current 'camera' position over the 2d world in world space
