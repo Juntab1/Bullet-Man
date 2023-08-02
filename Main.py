@@ -100,6 +100,8 @@ class WorldObject:
 class Player(WorldObject):
     def __init__(self, start_x, start_y):
         super().__init__(start_x, start_y)
+        self.start_x = start_x
+        self.start_y = start_y
 
     def _render(self, state):
         camera = state.camera
@@ -127,24 +129,48 @@ class World:
         rect = get_rect_from_center(camera.x, camera.y, camera.width, camera.height)
 
         # this if statement relies on left side wall world view
-        if (rect[0][0] <= (-self.world_x_compare_window)):
+        if (rect[0][0] < (-self.world_x_compare_window)):
             for i in range(4):
             #  I forgot the y and x values have to be in screen space not in world space screen space is 
             # always from 0,0 to 30,12
                 if (rect[1][1] <= self.max_y):
                     state.window.addch(1 + i, -state.world.player.x, 'B')
+                if (rect[1][1] == (self.max_y)):
+                    for i in range(camera.width - 2):
+                        if (-state.world.player.x + i <= camera.width - 2):
+                            state.window.addch(4, -state.world.player.x + i, 'B')
+            
+        # this if statement relies on right side wall world view
+        if (rect[1][0] > (self.max_x - self.world_x_compare_window)):
+            for i in range(4):
+            #  I forgot the y and x values have to be in screen space not in world space screen space is 
+            # always from 0,0 to 30,12
+                if (rect[1][1] <= self.max_y):
+                    # right side wall
+                    state.window.addch(1 + i, ((camera.width * 2 ) - state.world.player.x), 'B')
+                # if (rect[1][1] == (self.max_y)):
+                #     for i in range(camera.width - 2):
+                #         if (-state.world.player.x + i <= camera.width - 2):
+                #             # bottom wall
+                #             state.window.addch(4, -state.world.player.x + i, 'B')
+                
+        if (rect[0][0] >= (-self.world_x_compare_window) and rect[1][1] == (self.max_y)):
+            for i in range(camera.width - 2):
+                    if (i + state.world.player.x < self.max_x):
+                        state.window.addch(4, 1 + i, 'B')
 
         # elif (camera.width == (world_x_compare_window + state.window_max_x)):
         #     for i in range(camera.height):
         #         pass
 
         # I might have this if statement wrong too
-        if (rect[1][1] == (state.world_max_y)):
-            for i in range(28):
-                # I don't know what to do for this if statement
-                # 15 is just the 
-                if (rect[0][0] <= -self.world_x_compare_window):
-                    state.window.addch(4, 1 + i, 'B')
+
+        # if (rect[1][1] == (state.world_max_y)):
+        #     for i in range(28):
+        #         # I don't know what to do for this if statement
+        #         # 15 is just the 
+        #         if (rect[0][0] <= -self.world_x_compare_window):
+        #             state.window.addch(4, 1 + i, 'B')
         else:
             return
 
@@ -205,30 +231,32 @@ class GameCommands:
     def on_up(self, state):
         player = state.world.player
         camera = state.camera
-        camera.y -= 1
-        player.y -= 1
+
+        if (player.y > (- state.world_y_compare_window / 2)):
+            camera.y -= 1
+            player.y -= 1
 
     def on_left(self, state):
         player = state.world.player
         camera = state.camera
 
-        if (player.x > (-state.world_x_compare_window + 1) and player.x < (state.world_max_x - state.world_x_compare_window)):
+        if (player.x > (-state.world_x_compare_window + 1)):
             camera.x -= 1
             player.x -= 1
 
     def on_down(self, state):
         camera = state.camera
         player = state.world.player
-
-        camera.y += 1
-        player.y += 1
+        if (player.y < (state.world_max_y - state.world_y_compare_window)):
+            camera.y += 1
+            player.y += 1
 
     def on_right(self, state):
         camera = state.camera
         player = state.world.player
-
-        camera.x += 1
-        player.x += 1
+        if (player.x < (state.world_max_x - state.world_x_compare_window - 1)):
+            camera.x += 1
+            player.x += 1
 
     def on_shoot(self, state):
         world = state.world
