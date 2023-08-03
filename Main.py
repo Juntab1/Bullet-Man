@@ -125,6 +125,7 @@ class World:
 
     def _render(self, state):
         camera = state.camera
+        player = state.world.player
         
         rect = get_rect_from_center(camera.x, camera.y, camera.width, camera.height)
 
@@ -132,24 +133,53 @@ class World:
         if (rect[0][0] < (-self.world_x_compare_window)):
             for i in range(4):
                 if (rect[1][1] <= self.max_y):
-                    state.window.addch(1 + i, -state.world.player.x, 'B')
+                    from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
+                    if (rect[0][1] < ((-self.world_y_compare_window))):
+                        if ((from_top + i) < (camera.height - 1)):
+                            state.window.addch(from_top + i, -player.x, 'B')
+                    else:
+                        state.window.addch(1 + i, -player.x, 'B')
             
         # right wall
         if (rect[1][0] > (self.max_x - self.world_x_compare_window + 1)):
             for i in range(4):
-                state.window.addch(1 + i, ((camera.width * 2) - state.world.player.x), 'B')
+                if (rect[1][1] <= self.max_y):
+                    from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
+                    if (rect[0][1] < ((-self.world_y_compare_window))):
+                        if ((from_top + i) < (camera.height - 1)):
+                            state.window.addch(from_top + i, ((camera.width * 2) - player.x), 'B')
+                    else:
+                        state.window.addch(1 + i, ((camera.width * 2) - player.x), 'B')
                 
         # bottom wall
         if (rect[1][1] >= (self.max_y)):
+            from_bottom = int(rect[1][1] - (self.world_y_compare_window * 2) - 2)
+            if (from_bottom <= player.start_y):
+                from_bottom = player.start_y + 1
             for i in range(camera.width - 2):
                     if (rect[1][0] > (self.max_x - self.world_x_compare_window + 1)):
-                        if (i + state.world.player.x < self.max_x):
-                            state.window.addch(4, 1 + i, 'B')
+                        if (i + player.x < self.max_x):
+                            state.window.addch(from_bottom, 1 + i, 'B')
                     elif (rect[0][0] < (- self.world_x_compare_window)):
-                        if(-state.world.player.x + i <= camera.width - 2):
-                            state.window.addch(4, -state.world.player.x + i, 'B')
+                        if(-player.x + i <= camera.width - 2):
+                            state.window.addch(from_bottom, -player.x + i, 'B')
                     else:
-                        state.window.addch(4, 1 + i, 'B')
+                        state.window.addch(from_bottom, 1 + i, 'B')
+        
+        # top wall
+        if (rect[0][1] < ((-self.world_y_compare_window))):
+            from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
+            if (from_top >= player.start_y):
+                from_top = player.start_y - 1
+            for i in range(camera.width - 2):
+                    if (rect[1][0] > (self.max_x - self.world_x_compare_window + 1)):
+                        if (i + player.x < self.max_x):
+                            state.window.addch(from_top, 1 + i, 'B')
+                    elif (rect[0][0] < (- self.world_x_compare_window)):
+                        if(-player.x + i <= camera.width - 2):
+                            state.window.addch(from_top, -player.x + i, 'B')
+                    else:
+                        state.window.addch(from_top, 1 + i, 'B')
                     
         else:
             return
@@ -208,7 +238,7 @@ class GameCommands:
         player = state.world.player
         camera = state.camera
 
-        if (player.y > (- state.world_y_compare_window / 2)):
+        if (player.y > (-state.world_y_compare_window + 1)):
             camera.y -= 1
             player.y -= 1
 
