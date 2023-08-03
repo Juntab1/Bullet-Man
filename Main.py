@@ -130,28 +130,32 @@ class World:
         rect = get_rect_from_center(camera.x, camera.y, camera.width, camera.height)
 
         # left wall
-        if (rect[0][0] < (-self.world_x_compare_window)):
+        # I have -1 in the first if statement and also for the x position in the addch to accomodate for making the border one position greater than 
+        # the max world size so the player can go to for example in x go to 45 not 44
+        if (rect[0][0] < (-self.world_x_compare_window - 1)):
             for i in range(4):
                 if (rect[1][1] <= self.max_y):
                     from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
                     if (rect[0][1] < ((-self.world_y_compare_window))):
                         if ((from_top + i) < (camera.height - 1)):
-                            state.window.addch(from_top + i, -player.x, 'B')
+                            state.window.addch(from_top + i, (-player.x) - 1, 'B')
                     else:
-                        state.window.addch(1 + i, -player.x, 'B')
+                        state.window.addch(1 + i, (-player.x) - 1, 'B')
             
         # right wall
-        if (rect[1][0] > (self.max_x - self.world_x_compare_window + 1)):
+        # same comment for here as above just used 2 instead of 1 for the if statement right
+        if (rect[1][0] > ((self.max_x) - self.world_x_compare_window + 2)):
             for i in range(4):
                 if (rect[1][1] <= self.max_y):
                     from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
                     if (rect[0][1] < ((-self.world_y_compare_window))):
                         if ((from_top + i) < (camera.height - 1)):
-                            state.window.addch(from_top + i, ((camera.width * 2) - player.x), 'B')
+                            state.window.addch(from_top + i, ((camera.width * 2) - player.x + 1), 'B')
                     else:
-                        state.window.addch(1 + i, ((camera.width * 2) - player.x), 'B')
+                        state.window.addch(1 + i, ((camera.width * 2) - (player.x) + 1), 'B')
                 
         # bottom wall
+        # still have some work to do
         if (rect[1][1] >= (self.max_y)):
             from_bottom = int(rect[1][1] - (self.world_y_compare_window * 2) - 2)
             if (from_bottom <= player.start_y):
@@ -167,6 +171,7 @@ class World:
                         state.window.addch(from_bottom, 1 + i, 'B')
         
         # top wall
+        # still have some work to do
         if (rect[0][1] < ((-self.world_y_compare_window))):
             from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
             if (from_top >= player.start_y):
@@ -238,7 +243,7 @@ class GameCommands:
         player = state.world.player
         camera = state.camera
 
-        if (player.y > (-state.world_y_compare_window + 1)):
+        if (player.y > (-state.world_y_compare_window)):
             camera.y -= 1
             player.y -= 1
 
@@ -246,7 +251,7 @@ class GameCommands:
         player = state.world.player
         camera = state.camera
 
-        if (player.x > (-state.world_x_compare_window + 1)):
+        if (player.x > (-state.world_x_compare_window)):
             camera.x -= 1
             player.x -= 1
 
@@ -260,7 +265,7 @@ class GameCommands:
     def on_right(self, state):
         camera = state.camera
         player = state.world.player
-        if (player.x < (state.world_max_x - state.world_x_compare_window - 1)):
+        if (player.x < (state.world_max_x - state.world_x_compare_window)):
             camera.x += 1
             player.x += 1
 
@@ -481,19 +486,19 @@ class Monster(WorldObject):
     def create_monster(self, state):
         world = state.world
         player = state.world.player
-        self.y = 3
-        self.x = 3
-        # self.y = random.randint(2, world.max_y - 2)
-        # self.x = random.randint(2, world.max_x - 2)
 
-        # if (self.y == player.y):
-        #     self.y = random.randint(1, world.max_y - 2)
-        #     while (self.y == player.y):
-        #         self.y = random.randint(1, world.max_y - 2)
-        # elif (self.x == player.x):
-        #     self.x = random.randint(1, world.max_x - 2)
-        #     while (self.x == player.x):
-        #         self.x = random.randint(1, world.max_x - 2)
+        # it's not world.max_y and world.max_x you have to take away the screen to world from the max's that is why the monster can spawn outside the world
+        self.y = random.randint(1, world.max_y - 2)
+        self.x = random.randint(1, world.max_x - 2)
+
+        if (self.y == player.y):
+            self.y = random.randint(1, world.max_y - 2)
+            while (self.y == player.y):
+                self.y = random.randint(1, world.max_y - 2)
+        elif (self.x == player.x):
+            self.x = random.randint(1, world.max_x - 2)
+            while (self.x == player.x):
+                self.x = random.randint(1, world.max_x - 2)
 
     # renders the monster on the screen
     def _render(self, state):
@@ -523,6 +528,8 @@ def main():
     game_state = GameState(6, 30, 12, 60)
     game_state.window = curses.newwin(6, 30)
     game_state.window.nodelay(True)
+
+    game_state.world.monster.create_monster(game_state)
 
     render = Renderer()
     render.render(game_state)
