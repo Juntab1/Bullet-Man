@@ -111,17 +111,35 @@ class Player(WorldObject):
             state.window.addch(screen_pos.y, screen_pos.x, 'A')
         else:
             return
+        
+class Wall(WorldObject):
+    def __init__(self, start_x, start_y):
+        super().__init__(start_x, start_y)
+        self.start_x = start_x
+        self.start_y = start_y
+
 
 # keeps track of the game world in a 2d grid
 class World:
-    def __init__(self, player_start_x, player_start_y, max_x, max_y, world_x_compare_window, world_y_compare_window):
+    def __init__(self, player_start_x, player_start_y, max_x, max_y, world_x_compare_window, world_y_compare_window, window_max_x, window_max_y):
         self.player = Player(player_start_x, player_start_y)
         self.max_x = max_x
         self.max_y = max_y
+        self.window_max_x = window_max_x
+        self.window_max_y = window_max_y
         self.monster = Monster()
         self.bullet = None
-        self.world_x_compare_window = world_x_compare_window
-        self.world_y_compare_window = world_y_compare_window
+        self.world_x_compare_window = int(world_x_compare_window)
+        self.world_y_compare_window = int(world_y_compare_window)
+
+        self.left_wall_middle = Wall(-self.world_x_compare_window - 1, player_start_y)
+        self.left_wall_top = Wall(-self.world_x_compare_window - 1, -self.world_y_compare_window - 1)
+        self.left_wall_bottom = Wall(-self.world_x_compare_window - 1, self.window_max_y + self.world_y_compare_window + 1)
+
+        self.right_wall_middle = Wall(self.window_max_x + self.world_x_compare_window + 1, player_start_y)
+        self.right_wall_top = Wall(self.window_max_x + self.world_x_compare_window + 1, -self.world_y_compare_window - 1)
+        self.right_wall_bottom = Wall(self.window_max_x + self.world_x_compare_window + 1, self.window_max_y + self.world_y_compare_window + 1)
+
 
     def _render(self, state):
         camera = state.camera
@@ -130,61 +148,92 @@ class World:
         rect = get_rect_from_center(camera.x, camera.y, camera.width, camera.height)
 
         # left wall
-        # I have -1 in the first if statement and also for the x position in the addch to accomodate for making the border one position greater than 
-        # the max world size so the player can go to for example in x go to 45 not 44
-        if (rect[0][0] < (-self.world_x_compare_window - 1)):
-            for i in range(4):
-                if (rect[1][1] <= self.max_y):
-                    from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
-                    if (rect[0][1] < ((-self.world_y_compare_window))):
-                        if ((from_top + i) < (camera.height - 1)):
-                            state.window.addch(from_top + i, (-player.x) - 1, 'B')
-                    else:
-                        state.window.addch(1 + i, (-player.x) - 1, 'B')
+        if camera.is_visible(self.left_wall_top.pos):
+            screen_pos = state.camera.to_screen_space(self.left_wall_top.pos)
+            for i in range(camera.height - 2):
+                if (screen_pos.y + i < camera.height - 1):
+                    state.window.addch(screen_pos.y + i, screen_pos.x, 'B')
+        elif camera.is_visible(self.left_wall_bottom.pos):
+            screen_pos = state.camera.to_screen_space(self.left_wall_bottom.pos)
+            for i in range(camera.height - 2):
+                if (screen_pos.y > i):
+                    state.window.addch(1 + i, screen_pos.x, 'B')
+        elif camera.is_visible(self.left_wall_middle.pos):
+            screen_pos = state.camera.to_screen_space(self.left_wall_middle.pos)
+            for i in range(camera.height - 2):
+                state.window.addch(1 + i, screen_pos.x, 'B')
+
+        # previous left wall
+        # if (rect[0][0] < (-self.world_x_compare_window - 1)):
+        #     for i in range(camera.height - 2):
+        #         if (rect[1][1] <= self.max_y):
+        #             from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
+        #             if (rect[0][1] < ((-self.world_y_compare_window))):
+        #                 if ((from_top + i) < (camera.height - 1)):
+        #                     state.window.addch(from_top + i, (-player.x) - 1, 'B')
+        #             else:
+        #                 state.window.addch(1 + i, (-player.x) - 1, 'B')
             
         # right wall
+        if camera.is_visible(self.right_wall_top.pos):
+            screen_pos = state.camera.to_screen_space(self.right_wall_top.pos)
+            for i in range(camera.height - 2):
+                if (screen_pos.y + i < camera.height - 1 and screen_pos.x < self.window_max_x - 1):
+                    state.window.addch(screen_pos.y + i, screen_pos.x, 'B')
+        elif camera.is_visible(self.right_wall_bottom.pos):
+            screen_pos = state.camera.to_screen_space(self.right_wall_bottom.pos)
+            for i in range(camera.height - 2):
+                if (screen_pos.y > i and screen_pos.x < self.window_max_x - 1):
+                    state.window.addch(1 + i, screen_pos.x, 'B')
+        elif camera.is_visible(self.right_wall_middle.pos):
+            screen_pos = state.camera.to_screen_space(self.right_wall_middle.pos)
+            for i in range(camera.height - 2):
+                if (screen_pos.x < self.window_max_x - 1):
+                    state.window.addch(1 + i, screen_pos.x, 'B')
+
+        # previous right wall
         # same comment for here as above just used 2 instead of 1 for the if statement right
-        if (rect[1][0] > ((self.max_x) - self.world_x_compare_window + 2)):
-            for i in range(4):
-                if (rect[1][1] <= self.max_y):
-                    from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
-                    if (rect[0][1] < ((-self.world_y_compare_window))):
-                        if ((from_top + i) < (camera.height - 1)):
-                            state.window.addch(from_top + i, ((camera.width * 2) - player.x + 1), 'B')
-                    else:
-                        state.window.addch(1 + i, ((camera.width * 2) - (player.x) + 1), 'B')
+        # if (rect[1][0] > (camera.width + self.world_x_compare_window + 2)):
+        #     for i in range(camera.height - 2):
+        #         if (rect[1][1] <= self.max_y):
+        #             from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
+        #             if (rect[0][1] < ((-self.world_y_compare_window))):
+        #                 if ((from_top + i) < (camera.height - 1)):
+        #                     state.window.addch(from_top + i, ((camera.width * 2) - player.x + 1), 'B')
+        #             else:
+        #                 state.window.addch(1 + i, ((camera.width * 2) - (player.x) + 1), 'B')
                 
         # bottom wall
         # still have some work to do
-        if (rect[1][1] >= (self.max_y)):
-            from_bottom = int(rect[1][1] - (self.world_y_compare_window * 2) - 2)
-            if (from_bottom <= player.start_y):
-                from_bottom = player.start_y + 1
-            for i in range(camera.width - 2):
-                    if (rect[1][0] > (self.max_x - self.world_x_compare_window + 1)):
-                        if (i + player.x < self.max_x):
-                            state.window.addch(from_bottom, 1 + i, 'B')
-                    elif (rect[0][0] < (- self.world_x_compare_window)):
-                        if(-player.x + i <= camera.width - 2):
-                            state.window.addch(from_bottom, -player.x + i, 'B')
-                    else:
-                        state.window.addch(from_bottom, 1 + i, 'B')
+        # if (rect[1][1] >= (camera.height + self.world_y_compare_window)):
+        #     from_bottom = int(rect[1][1] - (self.world_y_compare_window * 2) - 2)
+        #     if (from_bottom <= player.start_y):
+        #         from_bottom = player.start_y + 1
+        #     for i in range(camera.width - 2):
+        #             if (rect[1][0] > (self.max_x - self.world_x_compare_window + 1)):
+        #                 if (i + player.x < self.max_x):
+        #                     state.window.addch(from_bottom, 1 + i, 'B')
+        #             elif (rect[0][0] < (- self.world_x_compare_window)):
+        #                 if(-player.x + i <= camera.width - 2):
+        #                     state.window.addch(from_bottom, -player.x + i, 'B')
+        #             else:
+        #                 state.window.addch(from_bottom, 1 + i, 'B')
         
         # top wall
         # still have some work to do
-        if (rect[0][1] < ((-self.world_y_compare_window))):
-            from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
-            if (from_top >= player.start_y):
-                from_top = player.start_y - 1
-            for i in range(camera.width - 2):
-                    if (rect[1][0] > (self.max_x - self.world_x_compare_window + 1)):
-                        if (i + player.x < self.max_x):
-                            state.window.addch(from_top, 1 + i, 'B')
-                    elif (rect[0][0] < (- self.world_x_compare_window)):
-                        if(-player.x + i <= camera.width - 2):
-                            state.window.addch(from_top, -player.x + i, 'B')
-                    else:
-                        state.window.addch(from_top, 1 + i, 'B')
+        # if (rect[0][1] < ((-self.world_y_compare_window))):
+        #     from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
+        #     if (from_top >= player.start_y):
+        #         from_top = player.start_y - 1
+        #     for i in range(camera.width - 2):
+        #             if (rect[1][0] > (self.max_x - self.world_x_compare_window + 1)):
+        #                 if (i + player.x < self.max_x):
+        #                     state.window.addch(from_top, 1 + i, 'B')
+        #             elif (rect[0][0] < (- self.world_x_compare_window)):
+        #                 if(-player.x + i <= camera.width - 2):
+        #                     state.window.addch(from_top, -player.x + i, 'B')
+        #             else:
+        #                 state.window.addch(from_top, 1 + i, 'B')
                     
         else:
             return
@@ -302,14 +351,14 @@ class GameState:
         # TODO: starting with a world whose size is the same as the window, but later it should
         # be made bigger (so we can move around)
         
-        default_start_x = 15
-        default_start_y = 3
+        default_start_x = int(window_max_x / 2)
+        default_start_y = int(window_max_y / 2)
 
         self.world_max_x = world_max_x
         self.world_max_y = world_max_y
         self.world_x_compare_window = (world_max_x - window_max_x)/2
         self.world_y_compare_window = (world_max_y - window_max_y)/2
-        self.world = World(default_start_x, default_start_y, world_max_x, world_max_y, self.world_x_compare_window, self.world_y_compare_window)
+        self.world = World(default_start_x, default_start_y, world_max_x, world_max_y, self.world_x_compare_window, self.world_y_compare_window, window_max_x, window_max_y)
 
         self.window = None
         self.stats = Statistics()
@@ -476,6 +525,7 @@ class Bullet(WorldObject):
         self.shots_remaining -= 1
         self.last_sim_time = now
 
+# TODO - boundaries are wrong for the monster so it is able to go off screen but we do not really want that
 class Monster(WorldObject):
     def __init__(self):
         # TODO - we need to either pass this in or do something different so 
@@ -486,19 +536,22 @@ class Monster(WorldObject):
     def create_monster(self, state):
         world = state.world
         player = state.world.player
+        camera = state.camera
 
-        # it's not world.max_y and world.max_x you have to take away the screen to world from the max's that is why the monster can spawn outside the world
-        self.y = random.randint(1, world.max_y - 2)
-        self.x = random.randint(1, world.max_x - 2)
+        x_boundary = world.world_x_compare_window + camera.width + 1
+        y_boundary = world.world_y_compare_window + camera.height + 1
+
+        self.y = random.randint(-world.world_y_compare_window, y_boundary)
+        self.x = random.randint(-world.world_x_compare_window, x_boundary)
 
         if (self.y == player.y):
-            self.y = random.randint(1, world.max_y - 2)
+            self.y = random.randint(-world.world_y_compare_window, y_boundary)
             while (self.y == player.y):
-                self.y = random.randint(1, world.max_y - 2)
+                self.y = random.randint(-world.world_y_compare_window, y_boundary)
         elif (self.x == player.x):
-            self.x = random.randint(1, world.max_x - 2)
+            self.x = random.randint(-world.world_x_compare_window, x_boundary)
             while (self.x == player.x):
-                self.x = random.randint(1, world.max_x - 2)
+                self.x = random.randint(-world.world_x_compare_window, x_boundary)
 
     # renders the monster on the screen
     def _render(self, state):
@@ -524,9 +577,13 @@ def main():
     curses.cbreak()
     curses.curs_set(0)
 
-    # later have to put world length inside of it instead of just window
-    game_state = GameState(6, 30, 12, 60)
-    game_state.window = curses.newwin(6, 30)
+    window_width = 36
+    window_height = 10
+    world_width = 80
+    world_height = 12
+
+    game_state = GameState(window_height, window_width, world_height, world_width)
+    game_state.window = curses.newwin(window_height, window_width)
     game_state.window.nodelay(True)
 
     game_state.world.monster.create_monster(game_state)
