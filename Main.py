@@ -37,7 +37,7 @@ class Renderer:
         world = state.world
         player = state.world.player
         monster = state.world.monster
-        tree = state.world.tree
+        trees = state.world.trees
         bullet = state.world.bullet
         
         
@@ -51,7 +51,10 @@ class Renderer:
         player._render(state)
 
         monster._render(state)
-        tree._render(state)
+
+        for i in range(len(trees)):
+            trees[i]._render(state)
+
 
         if bullet:
             bullet._render(state)
@@ -130,10 +133,14 @@ class World:
         self.window_max_x = window_max_x
         self.window_max_y = window_max_y
         self.monster = Monster()
-        self.tree = Tree()
         self.bullet = None
         self.world_x_compare_window = int(world_x_compare_window)
         self.world_y_compare_window = int(world_y_compare_window)
+
+        self.trees = []
+        for i in range(10):
+            self.trees.append(Tree())
+        
 
         self.left_wall_middle = Wall(-self.world_x_compare_window - 1, player_start_y)
         self.left_wall_top = Wall(-self.world_x_compare_window - 1, -self.world_y_compare_window - 1)
@@ -685,7 +692,6 @@ def main():
     game_state.window.nodelay(True)
 
     game_state.world.monster.create_monster(game_state)
-    game_state.world.tree.create_tree(game_state)
 
     render = Renderer()
     render.render(game_state)
