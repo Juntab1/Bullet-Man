@@ -360,30 +360,32 @@ class GameCommands:
     def on_up(self, state):
         player = state.world.player
         camera = state.camera
-
-        if (player.y > (-state.world_y_compare_window)):
+        tree = state.world.tree
+        if (player.y > (-state.world_y_compare_window) and tree.check_tree_vs_object(player.x, (player.y - 1))):
             camera.y -= 1
             player.y -= 1
 
     def on_left(self, state):
         player = state.world.player
         camera = state.camera
-
-        if (player.x > (-state.world_x_compare_window)):
+        tree = state.world.tree
+        if (player.x > (-state.world_x_compare_window) and tree.check_tree_vs_object((player.x - 1), player.y)):
             camera.x -= 1
             player.x -= 1
 
     def on_down(self, state):
         camera = state.camera
         player = state.world.player
-        if (player.y < (state.world_max_y - state.world_y_compare_window)):
+        tree = state.world.tree
+        if (player.y < (state.world_max_y - state.world_y_compare_window) and tree.check_tree_vs_object(player.x, (player.y + 1))):
             camera.y += 1
             player.y += 1
 
     def on_right(self, state):
         camera = state.camera
         player = state.world.player
-        if (player.x < (state.world_max_x - state.world_x_compare_window)):
+        tree = state.world.tree
+        if (player.x < (state.world_max_x - state.world_x_compare_window) and tree.check_tree_vs_object((player.x + 1), player.y)):
             camera.x += 1
             player.x += 1
 
@@ -571,7 +573,6 @@ class Bullet(WorldObject):
         else:
             return
 
-    # need to delete this later
     def simulate(self, state):
         world = state.world
         stats = state.stats
@@ -602,11 +603,17 @@ class Monster(WorldObject):
 
     # creates a monster at a random location on the map
     def create_monster(self, state):
+        tree = state.world.tree
+
         random_area_on_map(self, state)
+        while (not tree.check_tree_vs_object(self.x, self.y)):
+            random_area_on_map(self, state)
+
+        
 
     # renders the monster on the screen
     def _render(self, state):
-        render_object(self, state)
+        render_object(self, state, 'T')
 
     # this is going to be nessesary for when we move the monster toward the player
     # def move_monster(self, state, window_info):
@@ -623,16 +630,22 @@ class Tree(WorldObject):
 
     def create_tree(self, state):
         random_area_on_map(self, state)
+
+    def check_tree_vs_object(self, object_x, object_y):
+        if(self.x == object_x and self.y == object_y):
+            return False
+        return True
+
     
     def _render(self, state):
-        render_object(self, state)
+        render_object(self, state, '@')
     
 
-def render_object(object, state):
+def render_object(object, state, char):
     camera = state.camera
     if camera.is_visible(object.pos):
         screen_pos = state.camera.to_screen_space(object.pos)
-        state.window.addch(screen_pos.y, screen_pos.x, '@')
+        state.window.addch(screen_pos.y, screen_pos.x, char)
     else:
         return
 
