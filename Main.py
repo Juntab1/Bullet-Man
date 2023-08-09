@@ -53,6 +53,7 @@ class Renderer:
         monster._render(state)
 
         for i in range(len(trees)):
+            # make random location x and y for trees here
             trees[i]._render(state)
 
 
@@ -139,7 +140,11 @@ class World:
 
         self.trees = []
         for i in range(10):
-            self.trees.append(Tree())
+            tree = Tree()
+            # do random tree location function here
+            tree.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
+            tree.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
+            self.trees.append(tree)
         
 
         self.left_wall_middle = Wall(-self.world_x_compare_window - 1, player_start_y)
@@ -367,32 +372,44 @@ class GameCommands:
     def on_up(self, state):
         player = state.world.player
         camera = state.camera
-        tree = state.world.tree
-        if (player.y > (-state.world_y_compare_window) and tree.check_tree_vs_object(player.x, (player.y - 1))):
+        trees = state.world.trees
+        if (player.y > (-state.world_y_compare_window)):
+            for i in range(len(trees)):
+                if (not trees[i].check_tree_vs_object(player.x, (player.y - 1))):
+                    return
             camera.y -= 1
             player.y -= 1
 
     def on_left(self, state):
         player = state.world.player
         camera = state.camera
-        tree = state.world.tree
-        if (player.x > (-state.world_x_compare_window) and tree.check_tree_vs_object((player.x - 1), player.y)):
+        trees = state.world.trees
+        if (player.x > (-state.world_x_compare_window)):
+            for i in range(len(trees)):
+                if (not trees[i].check_tree_vs_object((player.x - 1), player.y)):
+                    return
             camera.x -= 1
             player.x -= 1
 
     def on_down(self, state):
         camera = state.camera
         player = state.world.player
-        tree = state.world.tree
-        if (player.y < (state.world_max_y - state.world_y_compare_window) and tree.check_tree_vs_object(player.x, (player.y + 1))):
+        trees = state.world.trees
+        if (player.y < (state.world_max_y - state.world_y_compare_window)):
+            for i in range(len(trees)):
+                if (not trees[i].check_tree_vs_object(player.x, (player.y + 1))):
+                    return
             camera.y += 1
             player.y += 1
 
     def on_right(self, state):
         camera = state.camera
         player = state.world.player
-        tree = state.world.tree
-        if (player.x < (state.world_max_x - state.world_x_compare_window) and tree.check_tree_vs_object((player.x + 1), player.y)):
+        trees = state.world.trees
+        if (player.x < (state.world_max_x - state.world_x_compare_window)):
+            for i in range(len(trees)):
+                if (not trees[i].check_tree_vs_object((player.x + 1), player.y)):
+                    return
             camera.x += 1
             player.x += 1
 
@@ -610,11 +627,13 @@ class Monster(WorldObject):
 
     # creates a monster at a random location on the map
     def create_monster(self, state):
-        tree = state.world.tree
+        trees = state.world.trees
 
         random_area_on_map(self, state)
-        while (not tree.check_tree_vs_object(self.x, self.y)):
-            random_area_on_map(self, state)
+        trees = state.world.trees
+        for i in range(len(trees)):
+            while (not trees[i].check_tree_vs_object(self.x, self.y)):
+                random_area_on_map(self, state)
 
         
 
@@ -630,7 +649,7 @@ class Monster(WorldObject):
     #                 self.monster_y 
     #     elif ((self.monster_x == state.char_x)):
 
-# TODO: tommorow you need to make it so you can't bump into the tree and also maybe make a list of trees so you have many in the way
+# TODO:  make a list of trees so you have many in the way
 class Tree(WorldObject):
     def __init__(self):
         super().__init__(3,4)
@@ -642,6 +661,7 @@ class Tree(WorldObject):
         if(self.x == object_x and self.y == object_y):
             return False
         return True
+
 
     
     def _render(self, state):
