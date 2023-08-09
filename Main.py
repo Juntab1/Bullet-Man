@@ -139,11 +139,16 @@ class World:
         self.world_y_compare_window = int(world_y_compare_window)
 
         self.trees = []
-        for i in range(10):
+        for i in range(30):
             tree = Tree()
             # do random tree location function here
+            # later if I wanted to I could get rid of this first random variable creation by starting all trees at the position of the players start position
+            # also, I don't make sure if each tree is overlapping but that does not seem as important as only checking the player and monster position 
             tree.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
             tree.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
+            while(not tree.check_tree_vs_object(self.player.x, self.player.y) or not tree.check_tree_vs_object(self.monster.x, self.monster.y)):
+                tree.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
+                tree.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
             self.trees.append(tree)
         
 
@@ -654,8 +659,9 @@ class Tree(WorldObject):
     def __init__(self):
         super().__init__(3,4)
 
-    def create_tree(self, state):
-        random_area_on_map(self, state)
+    # not using this currently
+    # def create_tree(self, state):
+    #     random_area_on_map(self, state)
 
     def check_tree_vs_object(self, object_x, object_y):
         if(self.x == object_x and self.y == object_y):
