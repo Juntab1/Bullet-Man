@@ -6,8 +6,6 @@ import time
 # TODO - see if we can draw the box ourselves so we can have more control over the window
 #         ex. we want to write lines of text below the 'box', right now we can't because curses assumes a border on the edge
 # TODO - OR come up with a place to put text so we can expand debug info
-# TODO - make the bullet a World Object
-# TODO - get rid of the 'hidden' walls that are BORDER of the screen (they need to be in world space)
 
 # Utility functions not associated with a class
 
@@ -175,9 +173,6 @@ class World:
 
     def _render(self, state):
         camera = state.camera
-        player = state.world.player
-        
-        rect = get_rect_from_center(camera.x, camera.y, camera.width, camera.height)
 
         # left wall
         if camera.is_visible(self.left_wall_top.pos):
@@ -195,17 +190,6 @@ class World:
             for i in range(camera.height - 2):
                 if (screen_pos.x > 0):
                     state.window.addch(1 + i, screen_pos.x, '*')
-
-        # previous left wall
-        # if (rect[0][0] < (-self.world_x_compare_window - 1)):
-        #     for i in range(camera.height - 2):
-        #         if (rect[1][1] <= self.max_y):
-        #             from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
-        #             if (rect[0][1] < ((-self.world_y_compare_window))):
-        #                 if ((from_top + i) < (camera.height - 1)):
-        #                     state.window.addch(from_top + i, (-player.x) - 1, '*')
-        #             else:
-        #                 state.window.addch(1 + i, (-player.x) - 1, '*')
             
         # right wall
         if camera.is_visible(self.right_wall_top.pos):
@@ -223,18 +207,6 @@ class World:
             for i in range(camera.height - 2):
                 if (screen_pos.x < self.window_max_x - 1):
                     state.window.addch(1 + i, screen_pos.x, '*')
-
-        # previous right wall
-        # same comment for here as above just used 2 instead of 1 for the if statement right
-        # if (rect[1][0] > (camera.width + self.world_x_compare_window + 2)):
-        #     for i in range(camera.height - 2):
-        #         if (rect[1][1] <= self.max_y):
-        #             from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
-        #             if (rect[0][1] < ((-self.world_y_compare_window))):
-        #                 if ((from_top + i) < (camera.height - 1)):
-        #                     state.window.addch(from_top + i, ((camera.width * 2) - player.x + 1), '*')
-        #             else:
-        #                 state.window.addch(1 + i, ((camera.width * 2) - (player.x) + 1), '*')
                 
         # bottom wall
         if camera.is_visible(self.bottom_wall_right.pos):
@@ -262,22 +234,6 @@ class World:
             for i in range(camera.width - 2):
                 if (screen_pos.y < self.window_max_y - 1):
                     state.window.addch(screen_pos.y, 1 + i, '*')
-
-
-        # previous bottom wall
-        # if (rect[1][1] >= (camera.height + self.world_y_compare_window)):
-        #     from_bottom = int(rect[1][1] - (self.world_y_compare_window * 2) - 2)
-        #     if (from_bottom <= player.start_y):
-        #         from_bottom = player.start_y + 1
-        #     for i in range(camera.width - 2):
-        #             if (rect[1][0] > (self.max_x - self.world_x_compare_window + 1)):
-        #                 if (i + player.x < self.max_x):
-        #                     state.window.addch(from_bottom, 1 + i, '*')
-        #             elif (rect[0][0] < (- self.world_x_compare_window)):
-        #                 if(-player.x + i <= camera.width - 2):
-        #                     state.window.addch(from_bottom, -player.x + i, '*')
-        #             else:
-        #                 state.window.addch(from_bottom, 1 + i, '*')
         
         # top wall
         if camera.is_visible(self.top_wall_right.pos):
@@ -305,21 +261,6 @@ class World:
             for i in range(camera.width - 2):
                 if (screen_pos.y > 0):
                     state.window.addch(screen_pos.y, 1 + i, '*')
-
-        # previous top wall
-        # if (rect[0][1] < ((-self.world_y_compare_window))):
-        #     from_top = int(abs(rect[0][1]) - (self.world_y_compare_window))
-        #     if (from_top >= player.start_y):
-        #         from_top = player.start_y - 1
-        #     for i in range(camera.width - 2):
-        #             if (rect[1][0] > (self.max_x - self.world_x_compare_window + 1)):
-        #                 if (i + player.x < self.max_x):
-        #                     state.window.addch(from_top, 1 + i, '*')
-        #             elif (rect[0][0] < (- self.world_x_compare_window)):
-        #                 if(-player.x + i <= camera.width - 2):
-        #                     state.window.addch(from_top, -player.x + i, '*')
-        #             else:
-        #                 state.window.addch(from_top, 1 + i, '*')
                     
         else:
             return
@@ -444,12 +385,9 @@ class GameCommands:
 
 # keeps track of variables that change frequently due to user choice, like user coordinate and etc.
 class GameState:
-    # pass in 30 for x and 6 for y  
     def __init__(self, window_max_y, window_max_x, world_max_y, world_max_x):
         self.quit = False
         self.start = 0
-        # TODO: starting with a world whose size is the same as the window, but later it should
-        # be made bigger (so we can move around)
         
         default_start_x = int(window_max_x / 2)
         default_start_y = int(window_max_y / 2)
@@ -659,17 +597,11 @@ class Tree(WorldObject):
     def __init__(self):
         super().__init__(3,4)
 
-    # not using this currently
-    # def create_tree(self, state):
-    #     random_area_on_map(self, state)
-
     def check_tree_vs_object(self, object_x, object_y):
         if(self.x == object_x and self.y == object_y):
             return False
         return True
 
-
-    
     def _render(self, state):
         render_object(self, state, '@')
     
