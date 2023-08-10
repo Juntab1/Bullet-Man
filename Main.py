@@ -445,6 +445,9 @@ class GameState:
         default_start_x = int(window_max_x / 2)
         default_start_y = int(window_max_y / 2)
 
+        self.window_max_x = window_max_x
+        self.window_max_y = window_max_y
+
         self.world_max_x = world_max_x
         self.world_max_y = world_max_y
         self.world_x_compare_window = (world_max_x - window_max_x)/2
@@ -575,11 +578,13 @@ class Statistics:
         window = state.window
         window.addstr(0, 9, f"Score:{self.score}")
         window.addstr(0, 1, f"Lives:{self.health}")
+        window.addstr(state.window_max_y - 1, 1, "Monster may dodge bullet!")
+        
 
+# TODO the problem is that the bullet can go past the monster if it is moving
 # bullet operations of the user
 class Bullet(WorldObject):
     def __init__(self, start_x, start_y):
-        # Add 1 so we spawn next to the player 
         super().__init__(start_x, start_y)
         self.x_count = 1
         self.shots_remaining = 3
@@ -632,21 +637,10 @@ class Monster(WorldObject):
             while (not trees[i].check_tree_vs_object(self.x, self.y)):
                 random_area_on_map(self, state)
 
-        
-
     # renders the monster on the screen
     def _render(self, state):
         render_object(self, state, 'T')
 
-    # this is going to be nessesary for when we move the monster toward the player
-    # def move_monster(self, state, window_info):
-    #     if ((self.monster_y == state.char_y)):
-    #         for i in range(2):
-    #             if (self.monster_y > 1 and self.monster_y < window_info.height_window - 2):
-    #                 self.monster_y 
-    #     elif ((self.monster_x == state.char_x)):
-
-# TODO:  make a list of trees so you have many in the way
 class Tree(WorldObject):
     def __init__(self):
         super().__init__(3,4)
