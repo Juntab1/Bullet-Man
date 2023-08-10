@@ -318,6 +318,7 @@ class GameCommands:
     def on_up(self, state):
         player = state.world.player
         camera = state.camera
+        monster = state.world.monster
         trees = state.world.trees
         if (player.y > (-state.world_y_compare_window)):
             for i in range(len(trees)):
@@ -325,10 +326,23 @@ class GameCommands:
                     return
             camera.y -= 1
             player.y -= 1
+        
+        if (camera.is_visible(monster) and (monster.x == player.x)):
+            if (monster.y > player.y):
+                for i in range(len(trees)):
+                    if (trees[i].y == monster.y - 1 and trees[i].x == monster.x):
+                        return
+                monster.y -= 1
+            else:
+                for i in range(len(trees)):
+                    if (trees[i].y == monster.y + 1 and trees[i].x == monster.x):
+                        return
+                monster.y += 1
 
     def on_left(self, state):
         player = state.world.player
         camera = state.camera
+        monster = state.world.monster
         trees = state.world.trees
         if (player.x > (-state.world_x_compare_window)):
             for i in range(len(trees)):
@@ -336,21 +350,48 @@ class GameCommands:
                     return
             camera.x -= 1
             player.x -= 1
+        
+        if (camera.is_visible(monster) and (monster.y == player.y)):
+            if (monster.x > player.x):
+                for i in range(len(trees)):
+                    if (trees[i].x == monster.x - 1 and trees[i].y == monster.y):
+                        return
+                monster.x -= 1
+            else:
+                for i in range(len(trees)):
+                    if (trees[i].x == monster.x + 1 and trees[i].y == monster.y):
+                        return
+                monster.x += 1
 
     def on_down(self, state):
         camera = state.camera
         player = state.world.player
+        monster = state.world.monster
         trees = state.world.trees
+
         if (player.y < (state.world_max_y - state.world_y_compare_window)):
             for i in range(len(trees)):
                 if (not trees[i].check_tree_vs_object(player.x, (player.y + 1))):
                     return
             camera.y += 1
             player.y += 1
+        
+        if (camera.is_visible(monster) and (monster.x == player.x)):
+            if (monster.y > player.y):
+                for i in range(len(trees)):
+                    if (trees[i].y == monster.y - 1 and trees[i].x == monster.x):
+                        return
+                monster.y -= 1
+            else:
+                for i in range(len(trees)):
+                    if (trees[i].y == monster.y + 1 and trees[i].x == monster.x):
+                        return
+                monster.y += 1
 
     def on_right(self, state):
         camera = state.camera
         player = state.world.player
+        monster = state.world.monster
         trees = state.world.trees
         if (player.x < (state.world_max_x - state.world_x_compare_window)):
             for i in range(len(trees)):
@@ -358,6 +399,18 @@ class GameCommands:
                     return
             camera.x += 1
             player.x += 1
+
+        if (camera.is_visible(monster) and (monster.y == player.y)):
+            if (monster.x > player.x):
+                for i in range(len(trees)):
+                    if (trees[i].x == monster.x - 1 and trees[i].y == monster.y):
+                        return
+                monster.x -= 1
+            else:
+                for i in range(len(trees)):
+                    if (trees[i].x == monster.x + 1 and trees[i].y == monster.y):
+                        return
+                monster.x += 1
 
     def on_shoot(self, state):
         world = state.world
@@ -442,6 +495,7 @@ class GameState:
             monster = self.world.monster
 
             if (monster.x == player.x and monster.y == player.y):
+                curses.flash()
                 self.stats.lives_state(self, self.renderer)
 
             self.read_input()
