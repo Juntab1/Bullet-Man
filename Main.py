@@ -341,8 +341,9 @@ class GameCommands:
     def on_up(self, state):
         player = state.world.player
         camera = state.camera
-        monster = state.world.monster
+        monsters = state.world.monsters
         trees = state.world.trees
+
         if (player.y > (-state.world_y_compare_window)):
             for i in range(len(trees)):
                 if (not object_clash(trees[i], player.x, (player.y - 1))):
@@ -350,23 +351,25 @@ class GameCommands:
             camera.y -= 1
             player.y -= 1
         
-        if (camera.is_visible(monster) and (monster.x == player.x)):
-            if (monster.y > player.y):
-                for i in range(len(trees)):
-                    if (trees[i].y == monster.y - 1 and trees[i].x == monster.x):
-                        return
-                monster.y -= 1
-            else:
-                for i in range(len(trees)):
-                    if (trees[i].y == monster.y + 1 and trees[i].x == monster.x):
-                        return
-                monster.y += 1
+        for i in range(len(monsters)):
+            if (camera.is_visible(monsters[i]) and (monsters[i].x == player.x)):
+                if (monsters[i].y > player.y):
+                    for j in range(len(trees)):
+                        if (trees[j].y == monsters[i].y - 1 and trees[j].x == monsters[i].x):
+                            return
+                    monsters[i].y -= 1
+                else:
+                    for k in range(len(trees)):
+                        if (trees[k].y == monsters[i].y + 1 and trees[k].x == monsters[i].x):
+                            return
+                    monsters[i].y += 1
 
     def on_left(self, state):
         player = state.world.player
         camera = state.camera
-        monster = state.world.monster
+        monsters = state.world.monsters
         trees = state.world.trees
+
         if (player.x > (-state.world_x_compare_window)):
             for i in range(len(trees)):
                 if (not object_clash(trees[i], (player.x - 1), player.y)):
@@ -374,22 +377,23 @@ class GameCommands:
             camera.x -= 1
             player.x -= 1
         
-        if (camera.is_visible(monster) and (monster.y == player.y)):
-            if (monster.x > player.x):
-                for i in range(len(trees)):
-                    if (trees[i].x == monster.x - 1 and trees[i].y == monster.y):
-                        return
-                monster.x -= 1
-            else:
-                for i in range(len(trees)):
-                    if (trees[i].x == monster.x + 1 and trees[i].y == monster.y):
-                        return
-                monster.x += 1
+        for i in range(len(monsters) - 1):
+            if (camera.is_visible(monsters[i]) and (monsters[i].y == player.y)):
+                if (monsters[i].x > player.x):
+                    for j in range(len(trees)):
+                        if (trees[j].x == monsters[i].x - 1 and trees[j].y == monsters[i].y):
+                            return
+                    monsters[i].x -= 1
+                else:
+                    for k in range(len(trees)):
+                        if (trees[k].x == monsters[i].x + 1 and trees[k].y == monsters[i].y):
+                            return
+                    monsters[i].x += 1
 
     def on_down(self, state):
         camera = state.camera
         player = state.world.player
-        monster = state.world.monster
+        monsters = state.world.monsters
         trees = state.world.trees
 
         if (player.y < (state.world_max_y - state.world_y_compare_window)):
@@ -399,23 +403,25 @@ class GameCommands:
             camera.y += 1
             player.y += 1
         
-        if (camera.is_visible(monster) and (monster.x == player.x)):
-            if (monster.y > player.y):
-                for i in range(len(trees)):
-                    if (trees[i].y == monster.y - 1 and trees[i].x == monster.x):
-                        return
-                monster.y -= 1
-            else:
-                for i in range(len(trees)):
-                    if (trees[i].y == monster.y + 1 and trees[i].x == monster.x):
-                        return
-                monster.y += 1
+        for i in range(len(monsters) - 1):
+            if (camera.is_visible(monsters[i]) and (monsters[i].x == player.x)):
+                if (monsters[i].y > player.y):
+                    for j in range(len(trees)):
+                        if (trees[j].y == monsters[i].y - 1 and trees[j].x == monsters[i].x):
+                            return
+                    monsters[i].y -= 1
+                else:
+                    for k in range(len(trees)):
+                        if (trees[k].y == monsters[i].y + 1 and trees[k].x == monsters[i].x):
+                            return
+                    monsters[i].y += 1
 
     def on_right(self, state):
         camera = state.camera
         player = state.world.player
-        monster = state.world.monster
+        monsters = state.world.monsters
         trees = state.world.trees
+
         if (player.x < (state.world_max_x - state.world_x_compare_window)):
             for i in range(len(trees)):
                 if (not object_clash(trees[i], (player.x + 1), player.y)):
@@ -423,17 +429,18 @@ class GameCommands:
             camera.x += 1
             player.x += 1
 
-        if (camera.is_visible(monster) and (monster.y == player.y)):
-            if (monster.x > player.x):
-                for i in range(len(trees)):
-                    if (trees[i].x == monster.x - 1 and trees[i].y == monster.y):
-                        return
-                monster.x -= 1
-            else:
-                for i in range(len(trees)):
-                    if (trees[i].x == monster.x + 1 and trees[i].y == monster.y):
-                        return
-                monster.x += 1
+        for i in range(len(monsters) - 1):
+            if (camera.is_visible(monsters[i]) and (monsters[i].y == player.y)):
+                if (monsters[i].x > player.x):
+                    for j in range(len(trees)):
+                        if (trees[j].x == monsters[i].x - 1 and trees[j].y == monsters[i].y):
+                            return
+                    monsters[i].x -= 1
+                else:
+                    for k in range(len(trees)):
+                        if (trees[k].x == monsters[i].x + 1 and trees[k].y == monsters[i].y):
+                            return
+                    monsters[i].x += 1
 
     def on_shoot(self, state):
         world = state.world
