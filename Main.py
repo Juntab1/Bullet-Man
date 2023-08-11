@@ -338,6 +338,8 @@ class GameCommands:
 
     def __init__(self): pass
 
+    # TODO: something is really messed up with how the monsters react to the players movement that needs to be fixed
+
     def on_up(self, state):
         player = state.world.player
         camera = state.camera
@@ -377,7 +379,7 @@ class GameCommands:
             camera.x -= 1
             player.x -= 1
         
-        for i in range(len(monsters) - 1):
+        for i in range(len(monsters)):
             if (camera.is_visible(monsters[i]) and (monsters[i].y == player.y)):
                 if (monsters[i].x > player.x):
                     for j in range(len(trees)):
@@ -403,7 +405,7 @@ class GameCommands:
             camera.y += 1
             player.y += 1
         
-        for i in range(len(monsters) - 1):
+        for i in range(len(monsters)):
             if (camera.is_visible(monsters[i]) and (monsters[i].x == player.x)):
                 if (monsters[i].y > player.y):
                     for j in range(len(trees)):
@@ -429,7 +431,7 @@ class GameCommands:
             camera.x += 1
             player.x += 1
 
-        for i in range(len(monsters) - 1):
+        for i in range(len(monsters)):
             if (camera.is_visible(monsters[i]) and (monsters[i].y == player.y)):
                 if (monsters[i].x > player.x):
                     for j in range(len(trees)):
@@ -525,11 +527,12 @@ class GameState:
     def run(self):
         while not self.quit:
             player = self.world.player
-            monster = self.world.monster
+            monsters = self.world.monsters
 
-            if (monster.x == player.x and monster.y == player.y):
-                curses.flash()
-                self.stats.lives_state(self, self.renderer)
+            for i in range(len(monsters)):
+                if (monsters[i].x == player.x and monsters[i].y == player.y):
+                    curses.flash()
+                    self.stats.lives_state(self, self.renderer, i)
 
             self.read_input()
             self.process_game_moves()
@@ -587,13 +590,13 @@ class Statistics:
     def decr_health(self):
         self.health -= 1
 
-    def lives_state(self, state, renderer):
+    def lives_state(self, state, renderer, monsterNo):
         window = state.window
-        monster = state.world.monster
+        monsters = state.world.monsters
         self.decr_health()
 
         if (self.health != 0):
-            monster.create_monster(state)
+            random_area_on_map(monsters[monsterNo], state)
 
         renderer.render(state)
 
@@ -632,7 +635,7 @@ class Bullet(WorldObject):
     def simulate(self, state):
         world = state.world
         stats = state.stats
-        monster = state.world.monster
+        monsters = state.world.monsters
 
         now = time.time()
         if (now - self.last_sim_time) <= .5:
@@ -642,11 +645,12 @@ class Bullet(WorldObject):
 
         if ((temp_x) < (world.max_x - 1)):
             self.x = temp_x 
-            if (monster.y == self.y and monster.x == self.x):
-                monster.create_monster(state)
-                curses.flash()
-                stats.incr_score()
-            self.x_count += 1
+            for i in range(len(monsters)):
+                if (monsters[i].y == self.y and monsters[i].x == self.x):
+                    random_area_on_map(monsters[i], state)
+                    curses.flash()
+                    stats.incr_score()
+                self.x_count += 1
 
         self.shots_remaining -= 1
         self.last_sim_time = now
@@ -729,8 +733,6 @@ def main():
     game_state = GameState(window_height, window_width, world_height, world_width)
     game_state.window = curses.newwin(window_height, window_width)
     game_state.window.nodelay(True)
-
-    # game_state.world.monster.create_monster(game_state)
 
     render = Renderer()
     render.render(game_state)
