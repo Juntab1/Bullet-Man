@@ -291,14 +291,12 @@ class World:
 
 # keeps track of the current 'camera' position over the 2d world in world space
 class Camera:
-    # I think we don't need to pass in start_x and start_y 
     def __init__(self, start_x, start_y, width, height):
 
         # indicates how large our 'view port' is
         self.width = width 
         self.height = height
 
-        # don't think we need these two variables now
         self.start_x = start_x
         self.start_y = start_y
 
@@ -337,8 +335,6 @@ class GameCommands:
     CAMERA_DOWN = 11
 
     def __init__(self): pass
-
-    # TODO: something is really messed up with how the monsters react to the players movement that needs to be fixed
 
     def on_up(self, state):
         player = state.world.player
@@ -614,7 +610,8 @@ class Statistics:
         window.addstr(state.window_max_y - 1, 1, "Monster may dodge bullet!")
         
 
-# TODO the problem is that the bullet can go past the monster if it is moving
+# TODO problem is that the bullet is skipping spaces I believe because we have multiple monsters now taking more time up 
+# up before we get to the .5 frame if statement check
 # bullet operations of the user
 class Bullet(WorldObject):
     def __init__(self, start_x, start_y):
@@ -661,16 +658,6 @@ class Monster(WorldObject):
         # it's not static.
         super().__init__(3, 3)
 
-    # creates a monster at a random location on the map
-    # def create_monster(self, state):
-    #     trees = state.world.trees
-
-    #     random_area_on_map(self, state)
-    #     trees = state.world.trees
-    #     for i in range(len(trees)):
-    #         while (not trees[i].check_tree_vs_object(self.x, self.y)):
-    #             random_area_on_map(self, state)
-
     # renders the monster on the screen
     def _render(self, state):
         render_object(self, state, 'T')
@@ -683,7 +670,7 @@ class Tree(WorldObject):
         render_object(self, state, '@')
 
 
-# probably want to later put all these in a class to consolidate main functions
+# TODO: probably want to later put all these in a class to consolidate main functions
 
 def object_clash(currObject, otherObject_x, otherObject_y):
     if(currObject.x == otherObject_x and currObject.y == otherObject_y):
