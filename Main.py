@@ -7,6 +7,11 @@ import time
 #         ex. we want to write lines of text below the 'box', right now we can't because curses assumes a border on the edge
 # TODO - OR come up with a place to put text so we can expand debug info
 
+# 1. create multiple monsters
+# 2. try to consolidate the crash logic between object like player, monsters, and trees
+# 2. create different levels of monsters
+
+
 # Utility functions not associated with a class
 
 def point_in_rect(rx1, ry1, rx2, ry2, x, y):
@@ -34,7 +39,7 @@ class Renderer:
         debug_info = state.debug_info
         world = state.world
         player = state.world.player
-        monster = state.world.monster
+        monsters = state.world.monsters
         trees = state.world.trees
         bullet = state.world.bullet
         
@@ -48,7 +53,9 @@ class Renderer:
         
         player._render(state)
 
-        monster._render(state)
+        for i in range(len(monsters)):
+            # make random location x and y for trees here
+            monsters[i]._render(state)
 
         for i in range(len(trees)):
             # make random location x and y for trees here
@@ -144,10 +151,26 @@ class World:
             # also, I don't make sure if each tree is overlapping but that does not seem as important as only checking the player and monster position 
             tree.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
             tree.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
-            while(not tree.check_tree_vs_object(self.player.x, self.player.y) or not tree.check_tree_vs_object(self.monster.x, self.monster.y)):
+            while(not object_clash(tree, self.player.x, self.player.y)):
                 tree.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
                 tree.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
             self.trees.append(tree)
+        
+        self.monsters = []
+        for i in range(3):
+            monster = Monster()
+            monster.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
+            monster.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
+            while(not object_clash(monster, self.player.x, self.player.y)):
+                monster.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
+                monster.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
+                for i in range(len(self.trees)):
+                    while(not object_clash(monster, self.trees[i].x, self.trees[i].y)):
+                        monster.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
+                        monster.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
+            self.monsters.append(monster)
+
+        
         
 
         self.left_wall_middle = Wall(-self.world_x_compare_window - 1, player_start_y)
@@ -322,7 +345,7 @@ class GameCommands:
         trees = state.world.trees
         if (player.y > (-state.world_y_compare_window)):
             for i in range(len(trees)):
-                if (not trees[i].check_tree_vs_object(player.x, (player.y - 1))):
+                if (not object_clash(trees[i], player.x, (player.y - 1))):
                     return
             camera.y -= 1
             player.y -= 1
@@ -346,7 +369,7 @@ class GameCommands:
         trees = state.world.trees
         if (player.x > (-state.world_x_compare_window)):
             for i in range(len(trees)):
-                if (not trees[i].check_tree_vs_object((player.x - 1), player.y)):
+                if (not object_clash(trees[i], (player.x - 1), player.y)):
                     return
             camera.x -= 1
             player.x -= 1
@@ -371,7 +394,7 @@ class GameCommands:
 
         if (player.y < (state.world_max_y - state.world_y_compare_window)):
             for i in range(len(trees)):
-                if (not trees[i].check_tree_vs_object(player.x, (player.y + 1))):
+                if (not object_clash(trees[i], player.x, (player.y + 1))):
                     return
             camera.y += 1
             player.y += 1
@@ -395,7 +418,7 @@ class GameCommands:
         trees = state.world.trees
         if (player.x < (state.world_max_x - state.world_x_compare_window)):
             for i in range(len(trees)):
-                if (not trees[i].check_tree_vs_object((player.x + 1), player.y)):
+                if (not object_clash(trees[i], (player.x + 1), player.y)):
                     return
             camera.x += 1
             player.x += 1
@@ -628,14 +651,14 @@ class Monster(WorldObject):
         super().__init__(3, 3)
 
     # creates a monster at a random location on the map
-    def create_monster(self, state):
-        trees = state.world.trees
+    # def create_monster(self, state):
+    #     trees = state.world.trees
 
-        random_area_on_map(self, state)
-        trees = state.world.trees
-        for i in range(len(trees)):
-            while (not trees[i].check_tree_vs_object(self.x, self.y)):
-                random_area_on_map(self, state)
+    #     random_area_on_map(self, state)
+    #     trees = state.world.trees
+    #     for i in range(len(trees)):
+    #         while (not trees[i].check_tree_vs_object(self.x, self.y)):
+    #             random_area_on_map(self, state)
 
     # renders the monster on the screen
     def _render(self, state):
@@ -645,13 +668,16 @@ class Tree(WorldObject):
     def __init__(self):
         super().__init__(3,4)
 
-    def check_tree_vs_object(self, object_x, object_y):
-        if(self.x == object_x and self.y == object_y):
-            return False
-        return True
-
     def _render(self, state):
         render_object(self, state, '@')
+
+
+# probably want to later put all these in a class to consolidate main functions
+
+def object_clash(currObject, otherObject_x, otherObject_y):
+    if(currObject.x == otherObject_x and currObject.y == otherObject_y):
+        return False
+    return True
     
 
 def render_object(object, state, char):
@@ -697,7 +723,7 @@ def main():
     game_state.window = curses.newwin(window_height, window_width)
     game_state.window.nodelay(True)
 
-    game_state.world.monster.create_monster(game_state)
+    # game_state.world.monster.create_monster(game_state)
 
     render = Renderer()
     render.render(game_state)
