@@ -3,6 +3,7 @@ import random
 import time
 
 # TODO - stop using specific numbers like 6, 30 as much as possible
+# TODO - there is an error for some reason where if you move one way the monster moves with you too
 # TODO - see if we can draw the box ourselves so we can have more control over the window
 #         ex. we want to write lines of text below the 'box', right now we can't because curses assumes a border on the edge
 # TODO - OR come up with a place to put text so we can expand debug info
@@ -133,15 +134,18 @@ class Wall(WorldObject):
 # keeps track of the game world in a 2d grid
 class World:
     def __init__(self, player_start_x, player_start_y, max_x, max_y, world_x_compare_window, world_y_compare_window, window_max_x, window_max_y):
+        self.common_tools = CommonTools()
         self.player = Player(player_start_x, player_start_y)
+        self.monster = Monster()
+        self.bullet = None
+
         self.max_x = max_x
         self.max_y = max_y
         self.window_max_x = window_max_x
         self.window_max_y = window_max_y
-        self.monster = Monster()
-        self.bullet = None
         self.world_x_compare_window = int(world_x_compare_window)
         self.world_y_compare_window = int(world_y_compare_window)
+
 
         self.trees = []
         for i in range(30):
@@ -151,9 +155,9 @@ class World:
             # also, I don't make sure if each tree is overlapping but that does not seem as important as only checking the player and monster position 
             tree.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
             tree.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
-            while(not object_clash(tree, self.player.x, self.player.y)):
-                tree.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
-                tree.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
+            # while(not self.common_tools.object_clash(tree, self.player.x, self.player.y)):
+            #     tree.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
+            #     tree.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
             self.trees.append(tree)
         
         self.monsters = []
@@ -161,11 +165,11 @@ class World:
             monster = Monster()
             monster.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
             monster.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
-            while(not object_clash(monster, self.player.x, self.player.y)):
+            while(not self.common_tools.object_clash(monster, self.player.x, self.player.y)):
                 monster.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
                 monster.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
                 for i in range(len(self.trees)):
-                    while(not object_clash(monster, self.trees[i].x, self.trees[i].y)):
+                    while(not self.common_tools.object_clash(monster, self.trees[i].x, self.trees[i].y)):
                         monster.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
                         monster.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
             self.monsters.append(monster)
@@ -341,10 +345,11 @@ class GameCommands:
         camera = state.camera
         monsters = state.world.monsters
         trees = state.world.trees
+        common = state.world.common_tools
 
         if (player.y > (-state.world_y_compare_window)):
             for i in range(len(trees)):
-                if (not object_clash(trees[i], player.x, (player.y - 1))):
+                if (not common.object_clash(trees[i], player.x, (player.y - 1))):
                     return
             camera.y -= 1
             player.y -= 1
@@ -367,10 +372,11 @@ class GameCommands:
         camera = state.camera
         monsters = state.world.monsters
         trees = state.world.trees
+        common = state.world.common_tools
 
         if (player.x > (-state.world_x_compare_window)):
             for i in range(len(trees)):
-                if (not object_clash(trees[i], (player.x - 1), player.y)):
+                if (not common.object_clash(trees[i], (player.x - 1), player.y)):
                     return
             camera.x -= 1
             player.x -= 1
@@ -393,10 +399,11 @@ class GameCommands:
         player = state.world.player
         monsters = state.world.monsters
         trees = state.world.trees
+        common = state.world.common_tools
 
         if (player.y < (state.world_max_y - state.world_y_compare_window)):
             for i in range(len(trees)):
-                if (not object_clash(trees[i], player.x, (player.y + 1))):
+                if (not common.object_clash(trees[i], player.x, (player.y + 1))):
                     return
             camera.y += 1
             player.y += 1
@@ -419,10 +426,11 @@ class GameCommands:
         player = state.world.player
         monsters = state.world.monsters
         trees = state.world.trees
+        common = state.world.common_tools
 
         if (player.x < (state.world_max_x - state.world_x_compare_window)):
             for i in range(len(trees)):
-                if (not object_clash(trees[i], (player.x + 1), player.y)):
+                if (not common.object_clash(trees[i], (player.x + 1), player.y)):
                     return
             camera.x += 1
             player.x += 1
@@ -589,10 +597,11 @@ class Statistics:
     def lives_state(self, state, renderer, monsterNo):
         window = state.window
         monsters = state.world.monsters
+        common = state.world.common_tools
         self.decr_health()
 
         if (self.health != 0):
-            random_area_on_map(monsters[monsterNo], state)
+            common.random_area_on_map(monsters[monsterNo], state)
 
         renderer.render(state)
 
@@ -633,6 +642,7 @@ class Bullet(WorldObject):
         world = state.world
         stats = state.stats
         monsters = state.world.monsters
+        common = state.world.common_tools
 
         now = time.time()
         if (now - self.last_sim_time) <= .5:
@@ -644,7 +654,7 @@ class Bullet(WorldObject):
             self.x = temp_x 
             for i in range(len(monsters)):
                 if (monsters[i].y == self.y and monsters[i].x == self.x):
-                    random_area_on_map(monsters[i], state)
+                    common.random_area_on_map(monsters[i], state)
                     curses.flash()
                     stats.incr_score()
                 self.x_count += 1
@@ -660,51 +670,58 @@ class Monster(WorldObject):
 
     # renders the monster on the screen
     def _render(self, state):
-        render_object(self, state, 'T')
+        common = state.world.common_tools
+
+        common.render_object(self, state, 'T')
 
 class Tree(WorldObject):
     def __init__(self):
         super().__init__(3,4)
 
     def _render(self, state):
-        render_object(self, state, '@')
+        common = state.world.common_tools
+
+        common.render_object(self, state, '@')
 
 
 # TODO: probably want to later put all these in a class to consolidate main functions
+class CommonTools():
+    def __init__(self):
+        pass
 
-def object_clash(currObject, otherObject_x, otherObject_y):
-    if(currObject.x == otherObject_x and currObject.y == otherObject_y):
-        return False
-    return True
-    
+    def object_clash(self, currObject, otherObject_x, otherObject_y):
+        if(currObject.x == otherObject_x and currObject.y == otherObject_y):
+            return False
+        return True
+        
 
-def render_object(object, state, char):
-    camera = state.camera
-    if camera.is_visible(object.pos):
-        screen_pos = state.camera.to_screen_space(object.pos)
-        state.window.addch(screen_pos.y, screen_pos.x, char)
-    else:
-        return
+    def render_object(self, object, state, char):
+        camera = state.camera
+        if camera.is_visible(object.pos):
+            screen_pos = state.camera.to_screen_space(object.pos)
+            state.window.addch(screen_pos.y, screen_pos.x, char)
+        else:
+            return
 
-def random_area_on_map(object, state):
-    world = state.world
-    player = state.world.player
-    camera = state.camera
+    def random_area_on_map(self, object, state):
+        world = state.world
+        player = state.world.player
+        camera = state.camera
 
-    x_boundary = world.world_x_compare_window + camera.width
-    y_boundary = world.world_y_compare_window + camera.height
+        x_boundary = world.world_x_compare_window + camera.width
+        y_boundary = world.world_y_compare_window + camera.height
 
-    object.y = random.randint(-world.world_y_compare_window, y_boundary)
-    object.x = random.randint(-world.world_x_compare_window, x_boundary)
-
-    if (object.y == player.y):
         object.y = random.randint(-world.world_y_compare_window, y_boundary)
-        while (object.y == player.y):
-            object.y = random.randint(-world.world_y_compare_window, y_boundary)
-    elif (object.x == player.x):
         object.x = random.randint(-world.world_x_compare_window, x_boundary)
-        while (object.x == player.x):
+
+        if (object.y == player.y):
+            object.y = random.randint(-world.world_y_compare_window, y_boundary)
+            while (object.y == player.y):
+                object.y = random.randint(-world.world_y_compare_window, y_boundary)
+        elif (object.x == player.x):
             object.x = random.randint(-world.world_x_compare_window, x_boundary)
+            while (object.x == player.x):
+                object.x = random.randint(-world.world_x_compare_window, x_boundary)
 
 def main():
     curses.initscr()
