@@ -8,8 +8,7 @@ import time
 #         ex. we want to write lines of text below the 'box', right now we can't because curses assumes a border on the edge
 # TODO - OR come up with a place to put text so we can expand debug info
 
-# 1. create multiple monsters
-# 2. try to consolidate the crash logic between object like player, monsters, and trees
+
 # 2. create different levels of monsters
 
 
@@ -81,6 +80,13 @@ class WorldPos:
         self.y = y
 
 
+# thought I have currently is that I can get rid of the start_x and start_y because I just manually put in 
+# the number of whatever is half of the screen size. The player is created first and everything elses position is randomized
+# so that way we could get rid of like 10 lines of code total but the problem would be how am I going to connect the half screen size with
+# this class
+
+# solution is in main just create world object and pass in the parameters needed 
+
 class WorldObject:
     def __init__(self, start_x, start_y):
         self.start_x = start_x
@@ -102,10 +108,6 @@ class WorldObject:
     @y.setter
     def y(self, y):
         self.pos.y = y
-
-#  player.pos.x
-#  player.pos.getX()
-#  player.x <- want and want to share with Monster
 #    
 
 # keeps track of player position on world
@@ -150,14 +152,13 @@ class World:
         self.trees = []
         for i in range(30):
             tree = Tree()
-            # do random tree location function here
             # later if I wanted to I could get rid of this first random variable creation by starting all trees at the position of the players start position
             # also, I don't make sure if each tree is overlapping but that does not seem as important as only checking the player and monster position 
             tree.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
             tree.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
-            # while(not self.common_tools.object_clash(tree, self.player.x, self.player.y)):
-            #     tree.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
-            #     tree.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
+            while(not self.common_tools.object_clash(tree, self.player.x, self.player.y)):
+                tree.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
+                tree.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
             self.trees.append(tree)
         
         self.monsters = []
@@ -173,9 +174,6 @@ class World:
                         monster.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
                         monster.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
             self.monsters.append(monster)
-
-        
-        
 
         self.left_wall_middle = Wall(-self.world_x_compare_window - 1, player_start_y)
         self.left_wall_top = Wall(-self.world_x_compare_window - 1, -self.world_y_compare_window - 1)
@@ -685,7 +683,7 @@ class Tree(WorldObject):
 
 
 # TODO: probably want to later put all these in a class to consolidate main functions
-class CommonTools():
+class CommonTools:
     def __init__(self):
         pass
 
