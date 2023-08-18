@@ -260,7 +260,6 @@ class World:
         else:
             return
 
-
 # keeps track of the current 'camera' position over the 2d world in world space
 class Camera:
     def __init__(self, start_x, start_y, width, height):
@@ -323,14 +322,16 @@ class GameCommands:
         
         for i in range(len(monsters)):
             if (camera.is_visible(monsters[i]) and (monsters[i].x == player.x)):
-                if (monsters[i].y > player.y):
+                if (monsters[i].y == player.y and monsters[i].x == player.x):
+                    return
+                elif (monsters[i].y > player.y):
                     for j in range(len(trees)):
-                        if (trees[j].y == monsters[i].y - 1 and trees[j].x == monsters[i].x):
+                        if ((trees[j].y == monsters[i].y - 1 and trees[j].x == monsters[i].x)):
                             return
                     monsters[i].y -= 1
                 else:
                     for k in range(len(trees)):
-                        if (trees[k].y == monsters[i].y + 1 and trees[k].x == monsters[i].x):
+                        if ((trees[k].y == monsters[i].y + 1 and trees[k].x == monsters[i].x)):
                             return
                     monsters[i].y += 1
 
@@ -350,7 +351,9 @@ class GameCommands:
         
         for i in range(len(monsters)):
             if (camera.is_visible(monsters[i]) and (monsters[i].y == player.y)):
-                if (monsters[i].x > player.x):
+                if (monsters[i].y == player.y and monsters[i].x == player.x):
+                    return
+                elif (monsters[i].x > player.x):
                     for j in range(len(trees)):
                         if (trees[j].x == monsters[i].x - 1 and trees[j].y == monsters[i].y):
                             return
@@ -377,7 +380,9 @@ class GameCommands:
         
         for i in range(len(monsters)):
             if (camera.is_visible(monsters[i]) and (monsters[i].x == player.x)):
-                if (monsters[i].y > player.y):
+                if (monsters[i].y == player.y and monsters[i].x == player.x):
+                    return
+                elif (monsters[i].y > player.y):
                     for j in range(len(trees)):
                         if (trees[j].y == monsters[i].y - 1 and trees[j].x == monsters[i].x):
                             return
@@ -404,7 +409,9 @@ class GameCommands:
 
         for i in range(len(monsters)):
             if (camera.is_visible(monsters[i]) and (monsters[i].y == player.y)):
-                if (monsters[i].x > player.x):
+                if (monsters[i].y == player.y and monsters[i].x == player.x):
+                    return
+                elif (monsters[i].x > player.x):
                     for j in range(len(trees)):
                         if (trees[j].x == monsters[i].x - 1 and trees[j].y == monsters[i].y):
                             return
@@ -463,7 +470,6 @@ class GameState:
         self.camera = Camera(int(window_max_x / 2), int(window_max_y / 2), window_max_x, window_max_y)
         self.debug_info = DebugInfo()
         self.game_commands = GameCommands()
-        
 
         self.commands = {
             ord('w') : GameCommands.UP,
@@ -575,6 +581,7 @@ class Statistics:
         if (self.health == 0):
             renderer.render(state)
             window.addstr(2, 10, f"YOU LOSE!")
+            
             window.refresh()
             time.sleep(1.5)
             exit()
