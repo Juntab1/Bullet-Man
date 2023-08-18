@@ -2,15 +2,10 @@ import curses
 import random
 import time
 
-# TODO - stop using specific numbers like 6, 30 as much as possible
-# TODO - there is an error for some reason where if you move one way the monster moves with you too
 # TODO - see if we can draw the box ourselves so we can have more control over the window
 #         ex. we want to write lines of text below the 'box', right now we can't because curses assumes a border on the edge
 # TODO - OR come up with a place to put text so we can expand debug info
-
-
-# 2. create different levels of monsters
-
+# TODO - create different levels of monsters
 
 # Utility functions not associated with a class
 
@@ -43,7 +38,6 @@ class Renderer:
         trees = state.world.trees
         bullet = state.world.bullet
         
-        
         window.clear()
         window.box()
 
@@ -54,38 +48,25 @@ class Renderer:
         player._render(state)
 
         for i in range(len(monsters)):
-            # make random location x and y for trees here
             monsters[i]._render(state)
 
         for i in range(len(trees)):
-            # make random location x and y for trees here
             trees[i]._render(state)
-
 
         if bullet:
             bullet._render(state)
 
         window.refresh()
 
-
 class ScreenPos:
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
-
 class WorldPos:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-
-
-# thought I have currently is that I can get rid of the start_x and start_y because I just manually put in 
-# the number of whatever is half of the screen size. The player is created first and everything elses position is randomized
-# so that way we could get rid of like 10 lines of code total but the problem would be how am I going to connect the half screen size with
-# this class
-
-# solution is in main just create world object and pass in the parameters needed 
 
 class WorldObject:
     def __init__(self, start_x, start_y):
@@ -108,7 +89,6 @@ class WorldObject:
     @y.setter
     def y(self, y):
         self.pos.y = y
-#    
 
 # keeps track of player position on world
 class Player(WorldObject):
@@ -132,13 +112,11 @@ class Wall(WorldObject):
         self.start_x = start_x
         self.start_y = start_y
 
-
 # keeps track of the game world in a 2d grid
 class World:
     def __init__(self, player_start_x, player_start_y, max_x, max_y, world_x_compare_window, world_y_compare_window, window_max_x, window_max_y):
         self.common_tools = CommonTools()
         self.player = Player(player_start_x, player_start_y)
-        self.monster = Monster()
         self.bullet = None
 
         self.max_x = max_x
@@ -148,14 +126,9 @@ class World:
         self.world_x_compare_window = int(world_x_compare_window)
         self.world_y_compare_window = int(world_y_compare_window)
 
-
         self.trees = []
         for i in range(30):
-            tree = Tree()
-            # later if I wanted to I could get rid of this first random variable creation by starting all trees at the position of the players start position
-            # also, I don't make sure if each tree is overlapping but that does not seem as important as only checking the player and monster position 
-            tree.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
-            tree.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
+            tree = Tree(player_start_x, player_start_y)
             while(not self.common_tools.object_clash(tree, self.player.x, self.player.y)):
                 tree.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
                 tree.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
@@ -163,9 +136,7 @@ class World:
         
         self.monsters = []
         for i in range(3):
-            monster = Monster()
-            monster.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
-            monster.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
+            monster = Monster(player_start_x, player_start_y)
             while(not self.common_tools.object_clash(monster, self.player.x, self.player.y)):
                 monster.x = random.randint(-self.world_x_compare_window, self.world_x_compare_window + self.window_max_x)
                 monster.y = random.randint(-self.world_y_compare_window, self.world_y_compare_window + self.window_max_y)
@@ -194,7 +165,6 @@ class World:
         self.top_wall_middle_left = Wall(player_start_x - 4, -self.world_y_compare_window - 1)
         self.top_wall_right = Wall(self.window_max_x + self.world_x_compare_window + 1, -self.world_y_compare_window - 1)
         self.top_wall_left = Wall(-self.world_x_compare_window - 1, -self.world_y_compare_window - 1)
-
 
     def _render(self, state):
         camera = state.camera
@@ -294,7 +264,6 @@ class World:
 # keeps track of the current 'camera' position over the 2d world in world space
 class Camera:
     def __init__(self, start_x, start_y, width, height):
-
         # indicates how large our 'view port' is
         self.width = width 
         self.height = height
@@ -313,17 +282,17 @@ class Camera:
         return point_in_rect(rect[0][0], rect[0][1], rect[1][0], rect[1][1], world_pos.x, world_pos.y)
         
     def to_screen_space(self, world_pos):
-
+        # finds the coordinates of the object in the screen space 
         offSet_x = self.x - world_pos.x
         offSet_y = self.y - world_pos.y
 
+        # center of the screen
         half_x = int(self.width / 2)
         half_y = int(self.height / 2)
 
         return ScreenPos(half_x - offSet_x, half_y - offSet_y)
 
 class GameCommands:
-    # TODO - Should these be something else besides numerals?
     RIGHT = 1
     LEFT = 2
     UP = 3
@@ -661,10 +630,8 @@ class Bullet(WorldObject):
         self.last_sim_time = now
 
 class Monster(WorldObject):
-    def __init__(self):
-        # TODO - we need to either pass this in or do something different so 
-        # it's not static.
-        super().__init__(3, 3)
+    def __init__(self, start_x, start_y):
+        super().__init__(start_x, start_y)
 
     # renders the monster on the screen
     def _render(self, state):
@@ -673,16 +640,14 @@ class Monster(WorldObject):
         common.render_object(self, state, 'T')
 
 class Tree(WorldObject):
-    def __init__(self):
-        super().__init__(3,4)
+    def __init__(self, start_x, start_y):
+        super().__init__(start_x, start_y)
 
     def _render(self, state):
         common = state.world.common_tools
 
         common.render_object(self, state, '@')
 
-
-# TODO: probably want to later put all these in a class to consolidate main functions
 class CommonTools:
     def __init__(self):
         pass
