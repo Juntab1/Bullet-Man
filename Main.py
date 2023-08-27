@@ -2,6 +2,8 @@ import curses
 import random
 import time
 
+# curses must be installed
+
 # Utility functions not associated with a class
 def point_in_rect(rx1, ry1, rx2, ry2, x, y):
     """
