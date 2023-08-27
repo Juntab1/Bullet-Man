@@ -2,13 +2,7 @@ import curses
 import random
 import time
 
-# TODO - see if we can draw the box ourselves so we can have more control over the window
-#         ex. we want to write lines of text below the 'box', right now we can't because curses assumes a border on the edge
-# TODO - OR come up with a place to put text so we can expand debug info
-# TODO - create different levels of monsters
-
 # Utility functions not associated with a class
-
 def point_in_rect(rx1, ry1, rx2, ry2, x, y):
     """
         Given a rectangle from bottom-left (rx1, ry1) to upper-right (rx2, ry2), 
@@ -23,7 +17,7 @@ def point_in_rect(rx1, ry1, rx2, ry2, x, y):
 def get_rect_from_center(x, y, w, h):
     return ((int(x - w/2), int(y - h/2)), (int(x + w/2), int(y + h/2)))
 
-# renders the window we are currently are at
+# renders the variables of the current world
 class Renderer:
     def __init__(self):
         pass
@@ -58,16 +52,19 @@ class Renderer:
 
         window.refresh()
 
+# keeps track of the screen pos of the object
 class ScreenPos:
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
+# keeps track of the world pos of the object
 class WorldPos:
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
+# passed into every object class to keep track of the world position 
 class WorldObject:
     def __init__(self, start_x, start_y):
         self.start_x = start_x
@@ -90,7 +87,7 @@ class WorldObject:
     def y(self, y):
         self.pos.y = y
 
-# keeps track of player position on world
+# keeps track of player position in the world
 class Player(WorldObject):
     def __init__(self, start_x, start_y):
         super().__init__(start_x, start_y)
@@ -106,6 +103,7 @@ class Player(WorldObject):
         else:
             return
         
+# keeps track of the walls for the world
 class Wall(WorldObject):
     def __init__(self, start_x, start_y):
         super().__init__(start_x, start_y)
@@ -291,6 +289,7 @@ class Camera:
 
         return ScreenPos(half_x - offSet_x, half_y - offSet_y)
 
+# commands that the user can use in the game
 class GameCommands:
     RIGHT = 1
     LEFT = 2
@@ -545,6 +544,7 @@ class GameState:
         if self.world.bullet.shots_remaining < 0:
             self.world.bullet = None
 
+# keeps track of the user posititon in the world
 class DebugInfo():
     def __init__(self):
         self.show = False
@@ -592,9 +592,6 @@ class Statistics:
         window.addstr(0, 1, f"Lives:{self.health}")
         window.addstr(state.window_max_y - 1, 1, "Monster may dodge bullet!")
         
-
-# TODO problem is that the bullet is skipping spaces I believe because we have multiple monsters now taking more time up 
-# up before we get to the .5 frame if statement check
 # bullet operations of the user
 class Bullet(WorldObject):
     def __init__(self, start_x, start_y):
@@ -636,6 +633,7 @@ class Bullet(WorldObject):
         self.shots_remaining -= 1
         self.last_sim_time = now
 
+# monster variable in the game
 class Monster(WorldObject):
     def __init__(self, start_x, start_y):
         super().__init__(start_x, start_y)
@@ -646,6 +644,7 @@ class Monster(WorldObject):
 
         common.render_object(self, state, 'T')
 
+# tree variable in the game
 class Tree(WorldObject):
     def __init__(self, start_x, start_y):
         super().__init__(start_x, start_y)
@@ -655,6 +654,7 @@ class Tree(WorldObject):
 
         common.render_object(self, state, '@')
 
+# tools used over and over again mostly in object classes
 class CommonTools:
     def __init__(self):
         pass
@@ -693,6 +693,7 @@ class CommonTools:
             while (object.x == player.x):
                 object.x = random.randint(-world.world_x_compare_window, x_boundary)
 
+# main operations of actually calling the classes and such for the game to execute
 def main():
     curses.initscr()
     curses.noecho()
@@ -719,23 +720,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-# Comments:
-    # refresh is needed to update the screen after you update variables
-    # window.refresh()
-    # can use curs_set(False) to suppress the blinking cursor
-    # getch() refreshes the screen and waits for the user to hit a key
-    # c = stdscr.getch() and c == ord(letter press)
-    # curses.noecho() disables reading keys to the screen
-    # curses.cbreak() makes it so console responds without pressing enter key
-
-    # three lines used to end console run
-    # curses.nocbreak()
-    # curses.echo()
-    # curses.endwin()
-    
-    # import sys
-    # print(sys.executable)   
-    # the two lines above help you see the path of your system so if your debugger is on the wrong
-    # path it will not run
